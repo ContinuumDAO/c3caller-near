@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "target": "ES5",
+    "noEmit": true,
+    "noImplicitAny": false,
+    "emitDecoratorMetadata": true
+  },
+  "files": [
+    "src/demo.ts",
+    "src/c3caller.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+}

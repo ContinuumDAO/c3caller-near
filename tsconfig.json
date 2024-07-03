@@ -8,7 +8,9 @@
   },
   "files": [
     "src/demo.ts",
-    "src/c3caller.ts"
+    "src/c3caller.ts",
+    "src/c3_uuid_keeper.ts",
+    "src/c3_gov_client.ts"
   ],
   "exclude": [
     "node_modules"

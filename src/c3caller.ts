@@ -49,7 +49,7 @@ class C3Caller {
     // generate the uuid (external contract call)
     const uuid = "0xabcd"
 
-    const c3call_log = {
+    const c3call_log: C3CallerEventLogData = {
       standard: "c3caller",
       version: "1.0.0",
       event: "c3_call",
@@ -81,8 +81,32 @@ class C3Caller {
     assert(to.length > 0, "C3Caller: empty to")
     assert(to_chain_ids.length > 0, "C3Caller: empty toChainID")
     assert(data.length > 0, "C3Caller: empty calldata")
-    assert(data.length === to_chain_ids.length, "C3Caller: calldata length dismatch")
+    assert(data.length === to_chain_ids.length, "C3Caller: calldata length dismatch") // BUG
 
     // loop through to get each uuid, and emit a log for each one
+    for(let i = 0; i < to.length; i++) {
+      const uuid = "0xabcd"
+      
+      const c3call_log: C3CallerEventLogData = {
+        standard: "c3caller",
+        version: "1.0.0",
+        event: "c3_call",
+        data: [
+          {
+            dappID: dapp_id,
+            uuid: uuid,
+            caller: caller,
+            toChainID: to_chain_ids[i],
+            to: to[i],
+            data: data,
+            extra: ""
+          }
+        ]
+      }
+
+      const c3call_log_json = JSON.stringify(c3call_log)
+
+      log(c3call_log_json)
+    }
   }
 }

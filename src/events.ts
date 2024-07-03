@@ -174,3 +174,12 @@ const execFallbackEventLogData = {
         ]
     }
 }
+
+
+export {
+    LogC3Call,
+    LogFallbackCall,
+    LogExecCall,
+    LogExecFallback,
+    C3CallerEventLogData
+}

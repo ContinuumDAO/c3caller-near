@@ -117,3 +117,8 @@ const execFallbackEventLogData = {
     }
 }
 ```
+
+
+## To test
+
+1. `console.log` the result value from a cross-contract call (as seen in callback) to see what it returns

@@ -1,7 +1,7 @@
 import { NearBindgen, AccountId, LookupMap, initialize, assert, view, call, near } from "near-sdk-js"
 import { encodeParameters } from "web3-eth-abi"
 import { hexToBytes, bytesToHex } from "web3-utils"
-import { C3GovClient } from "./c3_gov_client.js"
+import { C3GovClient } from "./c3_gov_client"
 
 const ZERO: bigint = BigInt(0)
 const ONE: bigint = BigInt(1)
@@ -17,8 +17,7 @@ class C3UUIDKeeper extends C3GovClient {
 
   @initialize({ privateFunction: true })
   init() {
-    // TODO: set the governor contract address here to sender
-    this.gov = near.predecessorAccountId()
+    this.init_gov({ gov: near.predecessorAccountId() })
   }
 
   only_operator = () => {
@@ -47,7 +46,7 @@ class C3UUIDKeeper extends C3GovClient {
     )
     const uuid_encoded_bytes = hexToBytes(uuid_encoded_hex)
     const uuid_hashed_bytes = near.keccak256(uuid_encoded_bytes)
-    return bytesToHex(uuid_hashed_bytes)
+    return "0x" + bytesToHex(uuid_hashed_bytes)
   }
 
   @view({})
@@ -68,7 +67,7 @@ class C3UUIDKeeper extends C3GovClient {
 
   @call({})
   register_uuid({ uuid }: { uuid: string }) {
-    // TODO: make this function only operator
+    this.only_operator()
     this.check_completion(uuid)
     this.completed_swapin.set(uuid, true)
   }
@@ -78,7 +77,7 @@ class C3UUIDKeeper extends C3GovClient {
     { dapp_id, to, to_chain_id, data }:
     { dapp_id: bigint, to: string, to_chain_id: string, data: string }
   ) {
-    // TODO: make this function only operator
+    this.only_operator()
     this.auto_increase_swapout_nonce()
     const uuid = this.calc_uuid(
       near.signerAccountId(),

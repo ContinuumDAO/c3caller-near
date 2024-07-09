@@ -20,6 +20,15 @@ interface CallbackData {
   extra: string
 }
 
+interface C3NEARMessage {
+  uuid: string,
+  to: AccountId,
+  from_chain_id: string,
+  source_tx: string,
+  fallback_to: AccountId,
+  data: string
+}
+
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
 const THIRTY_TGAS = BigInt("30000000000000")
@@ -185,8 +194,8 @@ class C3Caller extends C3GovClient {
   @call({ privateFunction: true })
   c3broadcast_callback(
     { callback_id }:
-    { callback_id: number }): boolean
-  {
+    { callback_id: number }
+  ): boolean {
     const callback_data_list: CallbackData[] = this.c3_data.get(callback_id.toString())
 
     // loop through each gen UUID call and if successful emit a c3call event
@@ -227,5 +236,51 @@ class C3Caller extends C3GovClient {
 
     near.log(`C3Broadcast successful`)
     return true
+  }
+
+  @call({})
+  execute(
+    { dapp_id, tx_sender, message }:
+    { dapp_id: bigint, tx_sender: AccountId, message: C3NEARMessage }
+  ) {
+    this.only_operator()
+    assert(!this.paused, "C3Caller: paused")
+    assert(message.data.length > 0, "C3Caller: empty calldata")
+    // validate sender here by calling is_vaild_sender on message.to
+    // check that the given dapp ID == dapp ID on message.to
+    // check that the UUID is not already complete on uuid_keeper
+
+    // set the context to the context of the message
+    this.context = { swap_id: message.uuid, from_chain_id: message.from_chain_id, source_tx: message.source_tx }
+
+    // CALL TARGET OF C3CALL ON NEAR
+    
+    this.context = { swap_id: "", from_chain_id: "", source_tx: "" }
+
+    // emit exec call event
+
+    // success -> register success in uuid_keeper
+    // fail    -> emit fallback call event
+  }
+
+  @call({})
+  c3_fallback(
+    { dapp_id, tx_sender, message }:
+    { dapp_id: bigint, tx_sender: AccountId, message: C3NEARMessage }
+  ) {
+    this.only_operator()
+    assert(!this.paused, "C3Caller: paused")
+    // check that the UUID is not already complete on uuid_keeper
+    // validate sender here by calling is_vaild_sender on message.to
+    // check that the given dapp ID == dapp ID on message.to
+
+    this.context = { swap_id: message.uuid, from_chain_id: message.from_chain_id, source_tx: message.source_tx }
+
+    // CALL TARGET OF C3FALLBACK ON NEAR
+
+    this.context = { swap_id: "", from_chain_id: "", source_tx: "" }
+
+    // register success in uuid_keeper
+    // emit fallback exec event
   }
 }

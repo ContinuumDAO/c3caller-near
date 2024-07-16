@@ -1,4 +1,4 @@
-import { NearBindgen, AccountId, LookupMap, initialize, assert, view, call, near } from "near-sdk-js"
+import { AccountId, LookupMap, initialize, assert, view, call, near } from "near-sdk-js"
 import { encodeParameters } from "web3-eth-abi"
 import { hexToBytes, bytesToHex } from "web3-utils"
 import { C3GovClient } from "./c3_gov_client"
@@ -6,19 +6,13 @@ import { C3GovClient } from "./c3_gov_client"
 const ZERO: bigint = BigInt(0)
 const ONE: bigint = BigInt(1)
 
-@NearBindgen({})
-class C3UUIDKeeper extends C3GovClient {
+export class C3UUIDKeeper extends C3GovClient {
   admin: AccountId = ""
 
   completed_swapin: LookupMap<boolean> = new LookupMap<boolean>("completed_swapin")
   uuid_2_nonce: LookupMap<bigint> = new LookupMap<bigint>("uuid_2_nonce")
 
   current_nonce: bigint = ZERO
-
-  @initialize({ privateFunction: true })
-  init() {
-    this.init_gov({ gov: near.predecessorAccountId() })
-  }
 
   only_operator = () => {
     assert(near.predecessorAccountId() == this.gov, "C3SwapIDKeeper: only governance")

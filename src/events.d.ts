@@ -183,10 +183,36 @@ interface C3CallerEventLogData {
 // }
 
 
+
+interface C3Context {
+  swap_id: string;
+  from_chain_id: string;
+  source_tx: string;
+}
+
+interface C3NEARMessage {
+  uuid: string,
+  to: AccountId,
+  from_chain_id: string,
+  source_tx: string,
+  fallback_to: AccountId,
+  data: string
+}
+
+interface ExecutedMessage {
+  message: C3NEARMessage,
+  dapp_id: bigint
+}
+
+
+
 export {
   LogC3Call,
   LogFallbackCall,
   LogExecCall,
   LogExecFallback,
-  C3CallerEventLogData
+  C3CallerEventLogData,
+  C3Context,
+  C3NEARMessage,
+  ExecutedMessage
 }

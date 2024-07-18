@@ -3,7 +3,6 @@ import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromi
 import { log } from "near-sdk-js/lib/api"
 import { C3GovClient } from "./c3_gov_client"
 import { C3CallerEventLogData } from "./events"
-import { c3call_promise_result, c3broadcast_promise_result } from "./utils"
 
 interface C3Context {
   swap_id: string;

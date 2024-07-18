@@ -3,36 +3,7 @@ import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromi
 import { log } from "near-sdk-js/lib/api"
 import { encodeParameters, decodeParameters } from "web3-eth-abi"
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
-import { C3CallerEventLogData } from "./events"
-
-interface C3Context {
-  swap_id: string;
-  from_chain_id: string;
-  source_tx: string;
-}
-
-interface CallbackData {
-  dapp_id: bigint,
-  caller: AccountId,
-  to_chain_id: string,
-  to: string,
-  data: string,
-  extra: string
-}
-
-interface C3NEARMessage {
-  uuid: string,
-  to: AccountId,
-  from_chain_id: string,
-  source_tx: string,
-  fallback_to: AccountId,
-  data: string
-}
-
-interface ExecutedMessage {
-  message: C3NEARMessage,
-  dapp_id: bigint
-}
+import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage } from "./events"
 
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})

@@ -204,6 +204,11 @@ interface ExecutedMessage {
   dapp_id: bigint
 }
 
+interface C3Executable {
+  function_name: string,
+  parameter_types: string[]
+}
+
 
 
 export {
@@ -214,5 +219,6 @@ export {
   C3CallerEventLogData,
   C3Context,
   C3NEARMessage,
-  ExecutedMessage
+  ExecutedMessage,
+  C3Executable
 }

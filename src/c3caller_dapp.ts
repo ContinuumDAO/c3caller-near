@@ -1,4 +1,5 @@
-import { AccountId, call, LookupMap, near, NearPromise } from "near-sdk-js"
+import { AccountId, call, LookupMap, near, NearPromise, PromiseIndex } from "near-sdk-js"
+import { decodeParameters } from "web3-eth-abi"
 import { hexToBytes, bytesToHex, stringToHex } from "web3-utils"
 
 interface C3Executable {
@@ -8,6 +9,7 @@ interface C3Executable {
 
 const ZERO = BigInt(0)
 const THIRTY_TGAS = BigInt("30000000000000")
+const NO_ARGS = JSON.stringify({})
 
 export class C3CallerDapp {
   c3caller: AccountId = ""
@@ -54,27 +56,29 @@ export class C3CallerDapp {
     return c3broadcast_promise
   }
 
+  @call({})
+  c3_dapp_call({ data }: { data: string }) {
+    const selector = data.slice(2, 12)
+    const { function_name, parameter_types } = this.selector_data.get(selector)
+    const decoded_calldata = decodeParameters(parameter_types, data)
+    const arg_array = []
+    for(let i = 0; i < decoded_calldata.__length__; i++) {
+      arg_array.push(decoded_calldata[i])
+    }
+
+    const c3_dapp_call_promise = NearPromise.new(near.currentAccountId())
+      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, THIRTY_TGAS)
+    const c3_result_promise = NearPromise.new(near.currentAccountId())
+      .functionCall("c3_result", NO_ARGS, ZERO, THIRTY_TGAS)
+    
+    // we must take the success and result of this function and pass it to the c3caller
+    return c3_dapp_call_promise.then(c3_result_promise).asReturn()
+  }
+
   context(): NearPromise {
     const c3context_promise = NearPromise.new(this.c3caller)
-      .functionCall("get_context", JSON.stringify({}), ZERO, THIRTY_TGAS)
+      .functionCall("get_context", NO_ARGS, ZERO, THIRTY_TGAS)
 
     return c3context_promise
-  }
-
-  calculate_selector(signature: string): string {
-    const sig_hex = stringToHex(signature)
-    const sig_bytes = hexToBytes(sig_hex)
-    const sig_hashed = near.keccak256(sig_bytes)
-    const hashed_signature_hex = bytesToHex(sig_hashed)
-    const selector = hashed_signature_hex.slice(0, 10) // 8-byte selector
-    return selector
-  }
-
-  @call({})
-  register_c3_executable(signature: string) {
-    const selector = this.calculate_selector(signature)
-    const function_name = signature.slice(0, signature.indexOf("("))
-    const parameter_types = (selector.match(/\((.*?)\)/)[1]).split(",")
-    this.selector_data.set(selector, { function_name, parameter_types })
   }
 }

@@ -3,7 +3,8 @@ import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromi
 import { log } from "near-sdk-js/lib/api"
 import { encodeParameters, decodeParameters } from "web3-eth-abi"
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
-import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage } from "./events"
+import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "./events"
+import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
 
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
@@ -19,6 +20,7 @@ class C3Caller extends C3UUIDKeeper {
   exec_context: LookupMap<C3Context> = new LookupMap<C3Context>("exec_context")
   fallback_context: LookupMap<C3Context> = new LookupMap<C3Context>("fallback_context")
   message_data: LookupMap<ExecutedMessage> = new LookupMap<ExecutedMessage>("message_data")
+  selector_data: LookupMap<C3Executable> = new LookupMap<C3Executable>("selector_data")
 
   current_nonce: bigint = ZERO
 
@@ -148,8 +150,8 @@ class C3Caller extends C3UUIDKeeper {
     { dapp_id, message }:
     { dapp_id: bigint, message: C3NEARMessage }
   ) {
-    const check_valid_sender = near.promiseResult(0 as PromiseIndex)
-    const check_dapp_id = BigInt(near.promiseResult(1 as PromiseIndex))
+    const check_valid_sender = JSON.parse(near.promiseResult(0 as PromiseIndex))
+    const check_dapp_id = BigInt(JSON.parse(near.promiseResult(1 as PromiseIndex)))
 
     assert(check_valid_sender == "true", "C3Caller: txSender invalid")
     assert(check_dapp_id == dapp_id, "C3Caller: dappID dismatch")
@@ -157,8 +159,17 @@ class C3Caller extends C3UUIDKeeper {
     const context: C3Context = { swap_id: message.uuid, from_chain_id: message.from_chain_id, source_tx: message.source_tx }
     this.exec_context.set(message.uuid, context)
 
+    const selector = message.data.slice(2, 12)
+    const { function_name, parameter_types } = this.selector_data.get(selector)
+    const decoded_calldata = decodeParameters(parameter_types, message.data)
+    const arg_array = []
+    for(let i = 0; i < decoded_calldata.__length__; i++) {
+      arg_array.push(decoded_calldata[i])
+    }
+
+    // arbitrary function call on NEAR (must be registered in this contract)
     const exec_call = NearPromise.new(message.to)
-      .functionCall("c3exec", JSON.stringify({ data: message.data }), ZERO, THIRTY_TGAS)
+      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, THIRTY_TGAS)
     const result_callback = NearPromise.new(near.currentAccountId())
       .functionCall("execute_callback", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
 
@@ -174,9 +185,10 @@ class C3Caller extends C3UUIDKeeper {
     { dapp_id: bigint, message: C3NEARMessage }
   ) {
     this.exec_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
-    const { success, result }: { success: boolean, result: string} = JSON.parse(near.promiseResult(0 as PromiseIndex))
+    const { success, result }: { success: boolean, result: string } = promiseResult()
+    const resultParsed = JSON.parse(result)
 
-    if (success) {
+    if (success && resultParsed == true) {
       this.register_uuid({ uuid: message.uuid })
     } else {
       const fallback_call_log: C3CallerEventLogData = {
@@ -220,12 +232,7 @@ class C3Caller extends C3UUIDKeeper {
     const next = NearPromise.new(near.currentAccountId())
       .functionCall("c3_fallback_validated", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
 
-    const fallback_call = NearPromise.new(message.to)
-      .functionCall("c3fallback", JSON.stringify({ data: message.data }), ZERO, THIRTY_TGAS)
-    const result_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("c3_fallback_callback", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
-
-    return fallback_call.then(result_callback).asReturn()
+    check_valid_sender.and(check_dapp_id).then(next).asReturn()
   }
 
   ///////////////////////////////////////////////////////////////
@@ -247,14 +254,22 @@ class C3Caller extends C3UUIDKeeper {
 
     const target: AccountId = message.to
 
-    const fallback_call = NearPromise.new(message.to)
-      .functionCall("c3fallback", JSON.stringify({ data: message.data }), ZERO, THIRTY_TGAS)
+    const selector = message.data.slice(2, 12)
+    const { function_name, parameter_types } = this.selector_data.get(selector)
+    const decoded_calldata = decodeParameters(parameter_types, message.data)
+    const arg_array = []
+    for(let i = 0; i < decoded_calldata.__length__; i++) {
+      arg_array.push(decoded_calldata[i])
+    }
+
+    // arbitrary function call on NEAR (must be registered in this contract)
+    const fallback_call = NearPromise.new(target)
+      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, THIRTY_TGAS)
     const result_callback = NearPromise.new(near.currentAccountId())
       .functionCall("c3_fallback_callback", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
     
     return fallback_call.then(result_callback).asReturn()
   }
-
 
   ///////////////////////////////////////////////////////////////
   /////////////////////// C3FALLBACK: CALL //////////////////////
@@ -291,4 +306,36 @@ class C3Caller extends C3UUIDKeeper {
   get_context({ uuid }: { uuid: string }): C3Context {
     return this.exec_context.get(uuid)
   }
+
+  calculate_selector(signature: string): string {
+    const sig_hex = stringToHex(signature)
+    const sig_bytes = hexToBytes(sig_hex)
+    const sig_hashed = near.keccak256(sig_bytes)
+    const hashed_signature_hex = bytesToHex(sig_hashed)
+    const selector = hashed_signature_hex.slice(2, 12) // 4-byte selector
+    return selector
+  }
+
+  @call({})
+  register_c3_executable(signature: string) {
+    const selector = this.calculate_selector(signature)
+    const function_name = signature.slice(0, signature.indexOf("("))
+    const parameter_types = (selector.match(/\((.*?)\)/)[1]).split(",")
+    this.selector_data.set(selector, { function_name, parameter_types })
+  }
+}
+
+
+const promiseResult = (): { success: boolean, result: string } => {
+  let success: boolean, result: string
+
+  try {
+    success = true
+    result = near.promiseResult(0 as PromiseIndex)
+  } catch {
+    success = false
+    result = undefined
+  }
+
+  return { success, result }
 }

@@ -1,6 +1,6 @@
 import { AccountId, LookupMap, LookupSet, near, assert, call, view } from "near-sdk-js"
 import { log } from "near-sdk-js/lib/api"
-import { C3CallerEventLogData } from "./events"
+import { C3CallerEventLogData } from "./types"
 
 export class C3GovClient {
   gov: AccountId = ""
@@ -21,18 +21,18 @@ export class C3GovClient {
 
   @call({ privateFunction: true })
   init_gov({ gov }: { gov: AccountId }) {
+    const current_gov = this.gov
     this.gov = gov
 
     const apply_gov_log: C3CallerEventLogData = {
       standard: "c3caller",
       version: "1.0.0",
       event: "apply_gov",
-      data: [{ oldGov: "", newGov: gov, timestamp: near.blockTimestamp() }]
+      data: [{ oldGov: current_gov, newGov: gov, timestamp: near.blockTimestamp().toString() }]
     }
 
-    const apply_gov_json = JSON.stringify(apply_gov_log)
-
-    log(apply_gov_json)
+    const apply_gov_json = JSON.stringify({ EVENT_JSON: apply_gov_log })
+    near.log(apply_gov_json)
   }
 
   @call({})
@@ -44,7 +44,7 @@ export class C3GovClient {
       standard: "c3caller",
       version: "1.0.0",
       event: "change_gov",
-      data: [{ oldGov: this.gov, newGov: gov, timestamp: near.blockTimestamp() }]
+      data: [{ oldGov: this.gov, newGov: gov, timestamp: near.blockTimestamp().toString() }]
     }
 
     const change_gov_json = JSON.stringify(change_gov_log)
@@ -65,7 +65,7 @@ export class C3GovClient {
       standard: "c3caller",
       version: "1.0.0",
       event: "apply_gov",
-      data: [{ oldGov: old_gov, newGov: new_gov, timestamp: near.blockTimestamp() }]
+      data: [{ oldGov: old_gov, newGov: new_gov, timestamp: near.blockTimestamp().toString() }]
     }
 
     const apply_gov_json = JSON.stringify(apply_gov_log)

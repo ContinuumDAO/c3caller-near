@@ -1,11 +1,11 @@
 {
-  "name": "hello_near",
+  "name": "c3caller",
   "version": "1.0.0",
   "license": "(MIT AND Apache-2.0)",
   "type": "module",
   "scripts": {
-    "build": "near-sdk-js build src/contract.ts build/hello_near.wasm",
-    "test": "$npm_execpath run build && ava -- ./build/hello_near.wasm"
+    "build": "near-sdk-js build src/c3caller.ts build/c3caller.wasm",
+    "test": "$npm_execpath run build && ava -- ./build/c3caller.wasm"
   },
   "dependencies": {
     "near-sdk-js": "1.0.0"

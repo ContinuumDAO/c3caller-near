@@ -1,6 +1,5 @@
 import { AccountId, LookupMap, initialize, assert, view, call, near } from "near-sdk-js"
-import { encodeParameters } from "web3-eth-abi"
-import { hexToBytes, bytesToHex } from "web3-utils"
+import { hexToBytes, bytesToHex, encodeParameters } from "./utils.mjs"
 import { C3GovClient } from "./c3_gov_client"
 
 const ZERO: bigint = BigInt(0)

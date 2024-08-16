@@ -51,7 +51,7 @@ import { AccountId } from "near-sdk-js"
 // OPTION B - C3Caller Native Events
 
 interface LogC3Call {         // event LogC3Call {
-  dappID: BigInt,             //     uint256 indexed dappID,
+  dappID: string,             //     uint256 indexed dappID,
   uuid: string,               //     bytes32 indexed uuid,
   caller: AccountId,          //     address caller,
   toChainID: string,          //     string toChainID,
@@ -61,7 +61,7 @@ interface LogC3Call {         // event LogC3Call {
 }                             // }
 
 interface LogFallbackCall {   // event LogFallbackCall {
-  dappID: BigInt,             //     uint256 indexed dappID,
+  dappID: string,             //     uint256 indexed dappID,
   uuid: string,               //     bytes32 indexed uuid,
   to: string,                 //     string to,
   data: string,               //     bytes data,
@@ -69,7 +69,7 @@ interface LogFallbackCall {   // event LogFallbackCall {
 }                             // }
 
 interface LogExecCall {       // event LogExecCall {
-  dappID: BigInt,             //     uint256 indexed dappID,
+  dappID: string,             //     uint256 indexed dappID,
   to: string,                 //     address indexed to,
   uuid: string,               //     bytes32 indexed uuid,
   fromChainID: string,        //     string fromChainID,
@@ -80,7 +80,7 @@ interface LogExecCall {       // event LogExecCall {
 }                             // }
 
 interface LogExecFallback {   // event LogExecFallback {
-  dappID: BigInt,             //     uint256 indexed dappID,
+  dappID: string,             //     uint256 indexed dappID,
   to: string,                 //     address indexed to,
   uuid: string,               //     bytes32 indexed uuid,
   fromChainID: string,        //     string fromChainID,
@@ -93,7 +93,7 @@ interface LogExecFallback {   // event LogExecFallback {
 interface Gov {
   oldGov: AccountId,
   newGov: AccountId,
-  timestamp: bigint
+  timestamp: string 
 }
 
 interface C3CallerEventLogData {

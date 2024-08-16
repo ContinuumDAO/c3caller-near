@@ -1,6 +1,4 @@
 import { AccountId, call, LookupMap, near, NearPromise, PromiseIndex } from "near-sdk-js"
-import { decodeParameters } from "web3-eth-abi"
-import { hexToBytes, bytesToHex, stringToHex } from "web3-utils"
 
 interface C3Executable {
   function_name: string,
@@ -54,25 +52,6 @@ export class C3CallerDapp {
       .functionCall("c3broadcast", JSON.stringify(c3broadcast_data), ZERO, THIRTY_TGAS)
 
     return c3broadcast_promise
-  }
-
-  @call({})
-  c3_dapp_call({ data }: { data: string }) {
-    const selector = data.slice(2, 12)
-    const { function_name, parameter_types } = this.selector_data.get(selector)
-    const decoded_calldata = decodeParameters(parameter_types, data)
-    const arg_array = []
-    for(let i = 0; i < decoded_calldata.__length__; i++) {
-      arg_array.push(decoded_calldata[i])
-    }
-
-    const c3_dapp_call_promise = NearPromise.new(near.currentAccountId())
-      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, THIRTY_TGAS)
-    const c3_result_promise = NearPromise.new(near.currentAccountId())
-      .functionCall("c3_result", NO_ARGS, ZERO, THIRTY_TGAS)
-    
-    // we must take the success and result of this function and pass it to the c3caller
-    return c3_dapp_call_promise.then(c3_result_promise).asReturn()
   }
 
   context(): NearPromise {

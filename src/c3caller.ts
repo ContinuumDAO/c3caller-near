@@ -1,19 +1,20 @@
 // Find all our documentation at https://docs.near.org
 import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromise, LookupMap, PromiseIndex } from "near-sdk-js"
 import { log } from "near-sdk-js/lib/api"
-import { encodeParameters, decodeParameters } from "web3-eth-abi"
+import { bytesToHex, hexToBytes, decodeParameters, stringToHex } from "./utils.mjs"
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
-import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "./events"
-import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
+import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "./types"
 
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
 const THIRTY_TGAS = BigInt("30000000000000")
 
-@NearBindgen({})
+@NearBindgen({ requireInit: true })
 class C3Caller extends C3UUIDKeeper {
   context: C3Context = { swap_id: "", from_chain_id: "", source_tx: "" }
   paused: boolean = false
+
+  test: string = "test"
 
   completed_swapin: LookupMap<boolean> = new LookupMap<boolean>("completed_swapin")
   uuid_2_nonce: LookupMap<bigint> = new LookupMap<bigint>("uuid_2_nonce")
@@ -27,6 +28,11 @@ class C3Caller extends C3UUIDKeeper {
   @initialize({ privateFunction: true })
   init() {
     this.init_gov({ gov: near.predecessorAccountId() })
+  }
+
+  @view({})
+  get_gov(): AccountId {
+    return this.gov
   }
 
   @call({ privateFunction: true })
@@ -60,7 +66,7 @@ class C3Caller extends C3UUIDKeeper {
       event: "c3_call",
       data: [
         {
-          dappID: dapp_id,
+          dappID: dapp_id.toString(),
           uuid,
           caller,
           toChainID: to_chain_id,
@@ -71,7 +77,7 @@ class C3Caller extends C3UUIDKeeper {
       ]
     }
 
-    const c3call_log_json = JSON.stringify({ EVENT_LOG: c3call_log })
+    const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
     log(c3call_log_json)
     near.log(`C3Call successful`)
   }
@@ -197,7 +203,7 @@ class C3Caller extends C3UUIDKeeper {
         event: "fallback_call",
         data: [
           {
-            dappID: dapp_id,
+            dappID: dapp_id.toString(),
             uuid: message.uuid,
             to: message.fallback_to,
             data: message.data,
@@ -287,7 +293,7 @@ class C3Caller extends C3UUIDKeeper {
       event: "exec_fallback",
       data: [
         {
-          dappID: dapp_id,
+          dappID: dapp_id.toString(),
           to: message.to,
           uuid: message.uuid,
           fromChainID: message.from_chain_id,

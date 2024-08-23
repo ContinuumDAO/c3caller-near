@@ -1,4 +1,4 @@
-import { AccountId, call, LookupMap, near, NearPromise, PromiseIndex } from "near-sdk-js"
+import { AccountId, LookupMap, near, NearPromise } from "near-sdk-js"
 
 interface C3Executable {
   function_name: string,

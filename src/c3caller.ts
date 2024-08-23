@@ -1,9 +1,18 @@
 // Find all our documentation at https://docs.near.org
 import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromise, LookupMap, PromiseIndex } from "near-sdk-js"
-import { log } from "near-sdk-js/lib/api"
-import { bytesToHex, hexToBytes, decodeParameters, stringToHex } from "./utils.mjs"
+// import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
+// import { decodeParameters } from "web3-eth-abi"
+import { hexlify, getBytes, toUtf8Bytes, AbiCoder } from "ethers"
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
 import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "./types"
+
+/** WEB3 -> ETHERS
+ * bytesToHex -> hexlify
+ * hexToBytes -> getBytes
+ * stringToHex -> hexlify(toUtf8Bytes)
+ * encodeParameters -> abiEncoder.encode
+ * decodeParameters -> abiEncoder.decode
+ */
 
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
@@ -78,7 +87,7 @@ class C3Caller extends C3UUIDKeeper {
     }
 
     const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
-    log(c3call_log_json)
+    near.log(c3call_log_json)
     near.log(`C3Call successful`)
   }
 
@@ -119,7 +128,7 @@ class C3Caller extends C3UUIDKeeper {
     }
 
     const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
-    log(c3call_log_json)
+    near.log(c3call_log_json)
 
     near.log(`C3Broadcast successful`)
   }
@@ -167,7 +176,12 @@ class C3Caller extends C3UUIDKeeper {
 
     const selector = message.data.slice(2, 12)
     const { function_name, parameter_types } = this.selector_data.get(selector)
-    const decoded_calldata = decodeParameters(parameter_types, message.data)
+
+    // * WEB3
+    // const decoded_calldata = decodeParameters(parameter_types, message.data)
+    // * ETHERS
+    const decoded_calldata = (AbiCoder.defaultAbiCoder()).decode(parameter_types, message.data)
+
     const arg_array = []
     for(let i = 0; i < decoded_calldata.__length__; i++) {
       arg_array.push(decoded_calldata[i])
@@ -213,7 +227,7 @@ class C3Caller extends C3UUIDKeeper {
       }
 
       const fallback_call_log_json = JSON.stringify({ EVENT_JSON: fallback_call_log })
-      log(fallback_call_log_json)
+      near.log(fallback_call_log_json)
     }
   }
 
@@ -262,7 +276,12 @@ class C3Caller extends C3UUIDKeeper {
 
     const selector = message.data.slice(2, 12)
     const { function_name, parameter_types } = this.selector_data.get(selector)
-    const decoded_calldata = decodeParameters(parameter_types, message.data)
+
+    // WEB3
+    // const decoded_calldata = decodeParameters(parameter_types, message.data)
+    // ETHERS
+    const decoded_calldata = (AbiCoder.defaultAbiCoder()).decode(parameter_types, message.data)
+
     const arg_array = []
     for(let i = 0; i < decoded_calldata.__length__; i++) {
       arg_array.push(decoded_calldata[i])
@@ -305,7 +324,7 @@ class C3Caller extends C3UUIDKeeper {
     }
 
     const exec_fallback_log_json = JSON.stringify({ EVENT_JSON: exec_fallback_log })
-    log(exec_fallback_log_json)
+    near.log(exec_fallback_log_json)
   }
 
   @view({})
@@ -314,16 +333,28 @@ class C3Caller extends C3UUIDKeeper {
   }
 
   calculate_selector(signature: string): string {
-    const sig_hex = stringToHex(signature)
-    const sig_bytes = hexToBytes(sig_hex)
+    // * WEB3
+    // const sig_hex = stringToHex(signature)
+    // const sig_bytes = hexToBytes(sig_hex)
+    // const sig_hashed = near.keccak256(sig_bytes)
+    // const hashed_signature_hex = bytesToHex(sig_hashed)
+    // * ETHERS
+    const sig_hex = hexlify(toUtf8Bytes(signature))
+    const sig_bytes = getBytes(sig_hex)
     const sig_hashed = near.keccak256(sig_bytes)
-    const hashed_signature_hex = bytesToHex(sig_hashed)
+    const hashed_signature_hex = hexlify(sig_hashed)
+
     const selector = hashed_signature_hex.slice(2, 12) // 4-byte selector
     return selector
   }
 
+  @view({})
+  selector({ signature }: { signature: string }) {
+    return this.calculate_selector(signature)
+  }
+
   @call({})
-  register_c3_executable(signature: string) {
+  register_c3_executable({ signature }: { signature: string }) {
     const selector = this.calculate_selector(signature)
     const function_name = signature.slice(0, signature.indexOf("("))
     const parameter_types = (selector.match(/\((.*?)\)/)[1]).split(",")

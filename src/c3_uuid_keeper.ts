@@ -1,6 +1,13 @@
 import { AccountId, LookupMap, initialize, assert, view, call, near } from "near-sdk-js"
-import { hexToBytes, bytesToHex, encodeParameters } from "./utils.mjs"
+// import { hexToBytes, bytesToHex } from "web3-utils"
+// import { encodeParameters } from "web3-eth-abi"
+import { hexlify, getBytes, AbiCoder } from "../node_modules/ethers/lib.commonjs/ethers"
 import { C3GovClient } from "./c3_gov_client"
+
+// ethers
+// bytesToHex -> hexlify
+// hexToBytes -> getBytes
+// encodeParameters -> abiEncoder.encode
 
 const ZERO: bigint = BigInt(0)
 const ONE: bigint = BigInt(1)
@@ -33,13 +40,17 @@ export class C3UUIDKeeper extends C3GovClient {
     nonce: bigint,
     data: string
   ): string => {
-    const uuid_encoded_hex = encodeParameters(
-      [ "string", "string", "string", "uint256", "address", "string", "uint256", "bytes" ],
-      [ near.currentAccountId(), sender, "NEAR", dapp_id, to, to_chain_id, nonce, data ]
-    )
-    const uuid_encoded_bytes = hexToBytes(uuid_encoded_hex)
+    const parameter_types = [ "string", "string", "string", "uint256", "address", "string", "uint256", "bytes" ]
+    const parameter_values = [ near.currentAccountId(), sender, "NEAR", dapp_id, to, to_chain_id, nonce, data ]
+    // * WEB3
+    // const uuid_encoded_hex = encodeParameters(parameter_types, parameter_values)
+    // const uuid_encoded_bytes = hexToBytes(uuid_encoded_hex)
+
+    // * ETHERS
+    const uuid_encoded_hex = (AbiCoder.defaultAbiCoder()).encode(parameter_types, parameter_values)
+    const uuid_encoded_bytes = getBytes(uuid_encoded_hex)
     const uuid_hashed_bytes = near.keccak256(uuid_encoded_bytes)
-    return "0x" + bytesToHex(uuid_hashed_bytes)
+    return "0x" + hexlify(uuid_hashed_bytes)
   }
 
   @view({})

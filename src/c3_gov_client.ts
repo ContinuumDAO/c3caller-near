@@ -1,5 +1,4 @@
 import { AccountId, LookupMap, LookupSet, near, assert, call, view } from "near-sdk-js"
-import { log } from "near-sdk-js/lib/api"
 import { C3CallerEventLogData } from "./types"
 
 export class C3GovClient {
@@ -49,8 +48,7 @@ export class C3GovClient {
 
     const change_gov_json = JSON.stringify(change_gov_log)
 
-    log(change_gov_json)
-
+    near.log(change_gov_json)
   }
 
   @call({})
@@ -70,7 +68,7 @@ export class C3GovClient {
 
     const apply_gov_json = JSON.stringify(apply_gov_log)
 
-    log(apply_gov_json)
+    near.log(apply_gov_json)
   }
 
   @call({})

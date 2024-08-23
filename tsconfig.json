@@ -3,16 +3,15 @@
     "experimentalDecorators": true,
     "target": "ES5",
     "noEmit": true,
-    "noImplicitAny": false,
-    "emitDecoratorMetadata": true
+    "noImplicitAny": false
   },
   "files": [
     "src/c3caller.ts",
-    "src/c3_uuid_keeper.ts",
     "src/c3_gov_client.ts",
+    "src/c3_uuid_keeper.ts",
     "src/c3caller_dapp.ts",
-    "src/example_dapp.ts",
-    "src/types.d.ts"
+    "src/types.d.ts",
+    "src/dapp.ts"
   ],
   "exclude": [
     "node_modules"

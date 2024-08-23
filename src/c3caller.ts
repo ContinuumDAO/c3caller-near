@@ -1,4 +1,3 @@
-// Find all our documentation at https://docs.near.org
 import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromise, LookupMap, PromiseIndex } from "near-sdk-js"
 // import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
 // import { decodeParameters } from "web3-eth-abi"
@@ -7,11 +6,10 @@ import { C3UUIDKeeper } from "./c3_uuid_keeper"
 import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "./types"
 
 /** WEB3 -> ETHERS
- * bytesToHex -> hexlify
- * hexToBytes -> getBytes
- * stringToHex -> hexlify(toUtf8Bytes)
- * encodeParameters -> abiEncoder.encode
- * decodeParameters -> abiEncoder.decode
+ * bytesToHex == hexlify
+ * hexToBytes == getBytes
+ * stringToHex == toUtf8Bytes -> hexlify
+ * decodeParameters == abiEncoder.decode
  */
 
 const ZERO = BigInt(0)
@@ -177,9 +175,9 @@ class C3Caller extends C3UUIDKeeper {
     const selector = message.data.slice(2, 12)
     const { function_name, parameter_types } = this.selector_data.get(selector)
 
-    // * WEB3
+    /* WEB3 */
     // const decoded_calldata = decodeParameters(parameter_types, message.data)
-    // * ETHERS
+    /* ETHERS */
     const decoded_calldata = (AbiCoder.defaultAbiCoder()).decode(parameter_types, message.data)
 
     const arg_array = []
@@ -277,9 +275,9 @@ class C3Caller extends C3UUIDKeeper {
     const selector = message.data.slice(2, 12)
     const { function_name, parameter_types } = this.selector_data.get(selector)
 
-    // WEB3
+    /* WEB3 */
     // const decoded_calldata = decodeParameters(parameter_types, message.data)
-    // ETHERS
+    /* ETHERS */
     const decoded_calldata = (AbiCoder.defaultAbiCoder()).decode(parameter_types, message.data)
 
     const arg_array = []
@@ -333,12 +331,12 @@ class C3Caller extends C3UUIDKeeper {
   }
 
   calculate_selector(signature: string): string {
-    // * WEB3
+    /* WEB3 */
     // const sig_hex = stringToHex(signature)
     // const sig_bytes = hexToBytes(sig_hex)
     // const sig_hashed = near.keccak256(sig_bytes)
     // const hashed_signature_hex = bytesToHex(sig_hashed)
-    // * ETHERS
+    /* ETHERS */
     const sig_hex = hexlify(toUtf8Bytes(signature))
     const sig_bytes = getBytes(sig_hex)
     const sig_hashed = near.keccak256(sig_bytes)

@@ -4,10 +4,11 @@ import { AccountId, LookupMap, initialize, assert, view, call, near } from "near
 import { hexlify, getBytes, AbiCoder } from "../node_modules/ethers/lib.commonjs/ethers"
 import { C3GovClient } from "./c3_gov_client"
 
-// ethers
-// bytesToHex -> hexlify
-// hexToBytes -> getBytes
-// encodeParameters -> abiEncoder.encode
+/** WEB3 -> ETHERS
+ * bytesToHex == hexlify
+ * hexToBytes == getBytes
+ * encodeParameters == abiEncoder.encode
+ */
 
 const ZERO: bigint = BigInt(0)
 const ONE: bigint = BigInt(1)

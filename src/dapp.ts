@@ -1,5 +1,10 @@
-import { AccountId, call, initialize, NearBindgen, NearPromise } from "near-sdk-js"
-import { encodeFunctionCall } from "web3-eth-abi"
+import { near, AccountId, call, initialize, NearBindgen, NearPromise, PromiseIndex } from "near-sdk-js"
+
+/* WEB3 */
+// import { encodeFunctionCall } from "web3-eth-abi"
+/* MM */
+import { encode } from "@metamask/abi-utils"
+
 import { C3CallerDapp } from "./c3caller_dapp"
 
 
@@ -19,13 +24,58 @@ class Dapp extends C3CallerDapp {
   ): NearPromise {
     const to = "0x0123456789012345678901234567890123456789" // target address on target chain (EVM address)
     const to_chain_id = "1" // Ethereum
+
+    // ABI function fragment for `function transfer(address recipient, uint256 amount)`
+    // const abi_transfer_fragment = {
+    //   name: "transfer",
+    //   type: "function",
+    //   inputs: [
+    //     {
+    //       type: "address",
+    //       name: "recipient"
+    //     },
+    //     {
+    //       type: "uint256",
+    //       name: "amount"
+    //     }
+    //   ]
+    // }
+
     // const data = encodeFunctionCall(
-    //   "transfer(address,uint256)",
+    //   abi_transfer_fragment,
     //   [recipient, amount]
-    // ) // calldata (selector + calldata)
-    const data = "0x00"
+    // )
+
+    // const selector = ""
+    const calldata = encode(["address", "uint256"], [recipient, amount])
+    const data = ""
     const extra = ""
 
-    return this.c3call({ to, to_chain_id, data, extra })
+    return this.c3call({ to, to_chain_id, data, extra }).asReturn()
   }
+
+  @call({ privateFunction: true })
+  c3call_callback() {
+    const { success } = promiseResult()
+    if (success) {
+      near.log("C3Call successful")
+    } else {
+      near.log("C3Call unsuccessful")
+    }
+  }
+}
+
+
+const promiseResult = (): { success: boolean, result: string } => {
+  let success: boolean, result: string
+
+  try {
+    success = true
+    result = near.promiseResult(0 as PromiseIndex)
+  } catch {
+    success = false
+    result = undefined
+  }
+
+  return { success, result }
 }

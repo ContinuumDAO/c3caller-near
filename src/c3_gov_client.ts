@@ -1,5 +1,5 @@
 import { AccountId, LookupMap, LookupSet, near, assert, call, view } from "near-sdk-js"
-import { C3CallerEventLogData } from "./types"
+import { C3CallerEventLogData } from "../c3caller"
 
 export class C3GovClient {
   gov: AccountId = ""

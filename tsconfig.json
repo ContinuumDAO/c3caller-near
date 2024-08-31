@@ -10,8 +10,8 @@
     "src/c3_gov_client.ts",
     "src/c3_uuid_keeper.ts",
     "src/c3caller_dapp.ts",
-    "src/types.d.ts",
-    "src/dapp.ts"
+    "src/dapp.ts",
+    "c3caller.d.ts"
   ],
   "exclude": [
     "node_modules"

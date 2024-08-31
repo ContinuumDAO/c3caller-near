@@ -1,4 +1,5 @@
 import { AccountId } from "near-sdk-js"
+import { TextEncoder as _TextEncoder } from "node:util";
 
 // OPTION A - NFT Events
 
@@ -209,6 +210,10 @@ interface C3Executable {
   parameter_types: string[]
 }
 
+
+declare global {
+  var TextEncoder: typeof _TextEncoder
+}
 
 
 export {

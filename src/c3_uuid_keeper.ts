@@ -1,13 +1,24 @@
 import { AccountId, LookupMap, initialize, assert, view, call, near } from "near-sdk-js"
+/* WEB3 */
 // import { hexToBytes, bytesToHex } from "web3-utils"
 // import { encodeParameters } from "web3-eth-abi"
-import { hexlify, getBytes, AbiCoder } from "../node_modules/ethers/lib.commonjs/ethers"
+/* ETHERS */
+// import { hexlify, getBytes, AbiCoder } from "../node_modules/ethers/lib.commonjs/ethers"
+/* MM */
+import { bytesToHex } from "@metamask/utils"
+import { encode } from "@metamask/abi-utils"
 import { C3GovClient } from "./c3_gov_client"
 
 /** WEB3 -> ETHERS
  * bytesToHex == hexlify
  * hexToBytes == getBytes
  * encodeParameters == abiEncoder.encode
+ */
+
+/** WEB3 -> MM
+ * bytesToHex
+ * hexToBytes (not required)
+ * encodeParameters == encode
  */
 
 const ZERO: bigint = BigInt(0)
@@ -43,15 +54,19 @@ export class C3UUIDKeeper extends C3GovClient {
   ): string => {
     const parameter_types = [ "string", "string", "string", "uint256", "address", "string", "uint256", "bytes" ]
     const parameter_values = [ near.currentAccountId(), sender, "NEAR", dapp_id, to, to_chain_id, nonce, data ]
-    // * WEB3
+    /* WEB3 */
     // const uuid_encoded_hex = encodeParameters(parameter_types, parameter_values)
     // const uuid_encoded_bytes = hexToBytes(uuid_encoded_hex)
+    /* MM */
+    const uuid_encoded_bytes = encode(parameter_types, parameter_values)
+    const uuid_hashed_bytes = near.keccak256(uuid_encoded_bytes)
+    return "0x" + bytesToHex(uuid_hashed_bytes)
 
     // * ETHERS
-    const uuid_encoded_hex = (AbiCoder.defaultAbiCoder()).encode(parameter_types, parameter_values)
-    const uuid_encoded_bytes = getBytes(uuid_encoded_hex)
-    const uuid_hashed_bytes = near.keccak256(uuid_encoded_bytes)
-    return "0x" + hexlify(uuid_hashed_bytes)
+    // const uuid_encoded_hex = (AbiCoder.defaultAbiCoder()).encode(parameter_types, parameter_values)
+    // const uuid_encoded_bytes = getBytes(uuid_encoded_hex)
+    // const uuid_hashed_bytes = near.keccak256(uuid_encoded_bytes)
+    // return "0x" + hexlify(uuid_hashed_bytes)
   }
 
   @view({})

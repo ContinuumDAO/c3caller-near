@@ -30,10 +30,15 @@ export class C3CallerDapp {
       data
     }
 
+    // call to c3caller contract - this will create the c3call event that will be transmitted cross-chain
     const c3call_promise = NearPromise.new(this.c3caller)
       .functionCall("c3call", JSON.stringify(c3call_data), ZERO, THIRTY_TGAS)
-
-    return c3call_promise
+    // once the c3call has been made, call back with the result
+    // if it failed, this gives the dapp an opportunity to revert any changes made to state
+    const c3call_callback = NearPromise.new(near.currentAccountId())
+      .functionCall("c3call_callback", JSON.stringify({}), ZERO, THIRTY_TGAS)
+    
+    return c3call_promise.then(c3call_callback).asReturn()
   }
 
   c3broadcast(

@@ -4,20 +4,25 @@
   "license": "(MIT AND Apache-2.0)",
   "type": "module",
   "scripts": {
-    "build": "near-sdk-js build src/c3caller.ts build/c3caller.wasm",
-    "test": "$npm_execpath run build && ava -- ./build/c3caller.wasm"
+    "build-c3caller": "near-sdk-js build src/c3caller.ts build/c3caller.wasm",
+    "build-dapp": "near-sdk-js build src/dapp.ts build/dapp.wasm",
+    "build": "npm run build-dapp",
+    "test": "$npm_execpath run build && ava -- ./build/c3caller.wasm ./build/dapp.wasm",
+    "test:testnet": "ava --config ./ava.testnet.config.cjs"
   },
   "dependencies": {
-    "ethers": "^6.13.2",
+    "@metamask/abi-utils": "^2.0.4",
+    "@metamask/utils": "^9.2.1",
     "near-sdk-js": "^2.0.0"
   },
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
     "ava": "^6.1.3",
     "near-workspaces": "^3.5.0",
     "typescript": "^5.4.5"
   },
   "ava": {
-    "timeout": 50000,
+    "timeout": "80s",
     "files": [
       "sandbox-test/*.ava.js"
     ]

@@ -1,30 +1,10 @@
 import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromise, LookupMap, PromiseIndex } from "near-sdk-js"
 
-/* WEB3 */
-// import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
-// import { decodeParameters } from "web3-eth-abi"
-/* ETHERS */
-// import { hexlify, getBytes, toUtf8Bytes, AbiCoder } from "ethers"
-/* MM */
-import { decode } from "@metamask/abi-utils"
-import { bytesToHex, hexToBytes, stringToBytes  } from "@metamask/utils"
+import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
+import { decodeParameters } from "web3-eth-abi"
 
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
 import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "../c3caller"
-
-/** WEB3 -> ETHERS
- * bytesToHex == hexlify
- * hexToBytes == getBytes
- * stringToHex == toUtf8Bytes -> hexlify
- * decodeParameters == abiEncoder.decode
- */
-
-/** WEB3 -> MM
- * bytesToHex
- * hexToBytes
- * stringToHex == stringToBytes -> bytesToHex
- * decodeParameters == decode
- */
 
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
@@ -50,11 +30,6 @@ class C3Caller extends C3UUIDKeeper {
   @initialize({ privateFunction: true })
   init() {
     this.init_gov({ gov: near.predecessorAccountId() })
-  }
-
-  @view({})
-  get_gov(): AccountId {
-    return this.gov
   }
 
   @call({ privateFunction: true })
@@ -101,7 +76,6 @@ class C3Caller extends C3UUIDKeeper {
 
     const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
     near.log(c3call_log_json)
-    near.log(`C3Call successful`)
   }
 
   @call({})
@@ -142,8 +116,6 @@ class C3Caller extends C3UUIDKeeper {
 
     const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
     near.log(c3call_log_json)
-
-    near.log(`C3Broadcast successful`)
   }
 
 
@@ -190,23 +162,12 @@ class C3Caller extends C3UUIDKeeper {
     const selector = message.data.slice(2, 12)
     const { function_name, parameter_types } = this.selector_data.get(selector)
 
-    /* WEB3 */
-    // const decoded_calldata = decodeParameters(parameter_types, message.data)
-    /* ETHERS */
-    // const decoded_calldata = (AbiCoder.defaultAbiCoder()).decode(parameter_types, message.data)
-    /* MM */
-    const message_data = hexToBytes(message.data)
-    const decoded_calldata = decode(parameter_types, message_data)
-
-    /* WEB3 */
-    // const arg_array = []
-    // for(let i = 0; i < decoded_calldata.__length__; i++) {
-    //   arg_array.push(decoded_calldata[i])
-    // }
-
-    /* MM */
-    const arg_array = decoded_calldata
-    // const arg_array = []
+    const decoded_calldata = decodeParameters(parameter_types, message.data)
+  
+    const arg_array = []
+    for(let i = 0; i < decoded_calldata.__length__; i++) {
+      arg_array.push(decoded_calldata[i])
+    }
 
     // arbitrary function call on NEAR (must be registered in this contract)
     const exec_call = NearPromise.new(message.to)
@@ -298,22 +259,12 @@ class C3Caller extends C3UUIDKeeper {
     const selector = message.data.slice(2, 12)
     const { function_name, parameter_types } = this.selector_data.get(selector)
 
-    /* WEB3 */
-    // const decoded_calldata = decodeParameters(parameter_types, message.data)
-    /* ETHERS */
-    // const decoded_calldata = (AbiCoder.defaultAbiCoder()).decode(parameter_types, message.data)
-    /* MM */
-    const message_data = hexToBytes(message.data)
-    const decoded_calldata = decode(parameter_types, message_data)
+    const decoded_calldata = decodeParameters(parameter_types, message.data)
 
-    /* WEB3 */
-    // const arg_array = []
-    // for(let i = 0; i < decoded_calldata.length; i++) {
-    //   arg_array.push(decoded_calldata[i])
-    // }
-    /* MM */
-    const arg_array = decoded_calldata
-    // const arg_array = []
+    const arg_array = []
+    for(let i = 0; i < decoded_calldata.__length__; i++) {
+      arg_array.push(decoded_calldata[i])
+    }
 
     // arbitrary function call on NEAR (must be registered in this contract)
     const fallback_call = NearPromise.new(target)
@@ -355,50 +306,46 @@ class C3Caller extends C3UUIDKeeper {
     near.log(exec_fallback_log_json)
   }
 
+  @call({})
+  register_c3executable({ signature }: { signature: string }): { selector: string, executable: C3Executable } {
+    const selector = this.calculate_selector(signature)
+    const existing_selector_data = this.selector_data.get(selector)
+    if (existing_selector_data !== null) return { selector, executable: existing_selector_data }
+    const function_name = signature.slice(0, signature.indexOf("("))
+    const parameter_types = (signature.match(/\((.*?)\)/)[1]).split(",")
+    const executable = { function_name, parameter_types }
+    this.selector_data.set(selector, executable)
+    return { selector, executable }
+  }
+
+  @view({})
+  get_selector({ signature }: { signature: string }) {
+    return this.calculate_selector(signature)
+  }
+
+  @view({})
+  get_selector_data({ selector }: { selector: string }): C3Executable {
+    return this.selector_data.get(selector)
+  }
+
+  @view({})
+  get_gov(): AccountId {
+    return this.gov
+  }
+
   @view({})
   get_context({ uuid }: { uuid: string }): C3Context {
     return this.exec_context.get(uuid)
   }
 
   calculate_selector(signature: string): string {
-    /* WEB3 */
-    // const sig_hex = stringToHex(signature)
-    // const sig_bytes = hexToBytes(sig_hex)
-    // const sig_hashed = near.keccak256(sig_bytes)
-    // const hashed_signature_hex = bytesToHex(sig_hashed)
-    /* ETHERS */
-    // const sig_hex = hexlify(toUtf8Bytes(signature))
-    // const sig_bytes = getBytes(sig_hex)
-    // const sig_hashed = near.keccak256(sig_bytes)
-    // const hashed_signature_hex = hexlify(sig_hashed)
-    /* MM */
-    const sig_hex = bytesToHex(stringToBytes(signature))
+    const sig_hex = stringToHex(signature)
     const sig_bytes = hexToBytes(sig_hex)
     const sig_hashed = near.keccak256(sig_bytes)
     const hashed_signature_hex = bytesToHex(sig_hashed)
 
     const selector = hashed_signature_hex.slice(2, 10) // 4-byte selector
-    return selector
-  }
-
-  @view({})
-  selector({ signature }: { signature: string }) {
-    return this.calculate_selector(signature)
-  }
-
-  @call({})
-  register_c3executable({ signature, selector }: { signature: string, selector: string }): void {
-    // const selector = this.calculate_selector(signature)
-    const executable: C3Executable = this.selector_data.get(selector)
-    near.log(executable)
-    const function_name = signature.slice(0, signature.indexOf("("))
-    const parameter_types = (signature.match(/\((.*?)\)/)[1]).split(",")
-    this.selector_data.set(selector, { function_name, parameter_types })
-  }
-
-  @view({})
-  get_selector_data({ selector }: { selector: string }): C3Executable {
-    return this.selector_data.get(selector)
+    return "0x" + selector
   }
 }
 

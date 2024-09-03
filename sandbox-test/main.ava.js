@@ -1,7 +1,5 @@
 import anyTest from "ava"
 import { NEAR, Worker } from "near-workspaces"
-import { encode } from "@metamask/abi-utils"
-import { bytesToHex } from "@metamask/utils"
 import { setDefaultResultOrder } from "dns"; setDefaultResultOrder("ipv4first") // temp fix for node >v17
 
 /**
@@ -10,7 +8,10 @@ import { setDefaultResultOrder } from "dns"; setDefaultResultOrder("ipv4first") 
  */
 const test = anyTest
 
-test.beforeEach(async t => {
+const ZERO = BigInt("0")
+const TGAS_30 = BigInt("30000000000000") // 30_000_000_000_000 (thirty teragas)
+
+test.beforeEach(async (t) => {
   // Create sandbox
   const worker = t.context.worker = await Worker.init()
 
@@ -41,58 +42,44 @@ test.afterEach.always(async (t) => {
 })
 
 
-// 1). Test c3_gov_client
+test("gov address initializes", async (t) => {
+  const { c3caller } = t.context.accounts
+  const gov = await c3caller.view("get_gov", {})
+  t.is(gov, c3caller.accountId)
+})
 
-// test("check that the gov address was initialized", async (t) => {
-//   const { c3caller } = t.context.accounts
-//   const gov = await c3caller.view("get_gov", {})
-//   t.is(gov, c3caller.accountId)
-// })
+test("registers new sig as executable", async (t) => {
+  const { root, c3caller } = t.context.accounts
+  const signature = "transfer(address,uint256)"
+  const { selector, executable } = await root.call(c3caller, "register_c3executable", { signature  })
+  const executable_json = JSON.stringify(executable)
+  const executable_expected_json = JSON.stringify({
+    function_name: "transfer",
+    parameter_types: [
+      "address",
+      "uint256"
+    ]
+  })
 
-// 2). Testing registry of a function signature in the c3caller contract
+  t.is(selector, "0xa9059cbb") // transfer(address,uint256)
+  t.is(executable_json, executable_expected_json)
+})
 
-// test("register a function sig as an executable", async (t) => {
-//   const { root, c3caller } = t.context.accounts
-//   const signature = "transfer(address,uint256)"
-//   const selector = await c3caller.view("selector", { signature })
+test("doesn't register existing sig as executable", async (t) => {
+  const { root, c3caller } = t.context.accounts
+  const signature = "transfer(address,uint256)"
+  await root.call(c3caller, "register_c3executable", { signature }) // it is now registered
+  await root.call(c3caller, "register_c3executable", { signature }) // the above call should take less gas.
+})
 
-//   await root.call(c3caller, "register_c3executable", { signature, selector })
+test("test c3call", async (t) => {
+  const { root, dapp } = t.context.accounts
+  const transfer_data = {
+    recipient: "0xabcdef0123abcdef0123abcdef0123abcdef0123",
+    amount: "1000000000000000000"
+  }
 
-//   const executable_json = JSON.stringify(await c3caller.view("get_selector_data", { selector }))
-//   const executable_expected_json = JSON.stringify({ function_name: "transfer", parameter_types: [ "address", "uint256" ] })
-//   t.is(executable_json, executable_expected_json)
-// })
-
-// 3). Testing a C3Call event, having registered a function signature
-
-// test("run c3call", async (t) => {
-//   const { root, c3caller, dapp } = t.context.accounts
-
-//   const signature = "transfer(address,uint256)"
-//   const selector = await c3caller.view("selector", { signature })
-
-//   await root.call(c3caller, "register_c3executable", { signature, selector })
-
-//   // calldata of call to be executed on target chain & address
-//   const recipient = "0xabcdefabcdabcdefabcdabcdefabcdabcdefabcd"
-//   // const amount = Web3.utils.fromWei("1", "ether")
-//   const amountWei = "1000000000000000000" // 1e18
-
-//   // 1_000_000_000_000_000_000_000_000_000_000_000 1 sextillion TGas
-//   const gas = "1000000000000000000000000000000000"
-//   const res = await root.call(dapp, "transfer_out_evm", { recipient, amountWei }, gas)
-//   console.log(res)
-
-//   t.is("a", "a")
-// })
-
-test("MM utils", async (t) => {
-  const parameter_types = ["address"]
-  const parameter_values = ["0x0123456701234567012345670123456701234567"]
-  const encoded = encode(parameter_types, parameter_values)
-  console.log(encoded)
-  const hashed = near.keccak256(encoded)
-  console.log(hashed)
-  const hashed_hex = bytesToHex(hashed)
-  console.log(hashed_hex)
+  const result = await root.call(dapp, "transfer_out_evm", transfer_data)
+  console.log(result)
+  t.is(result, "hello world")
 })

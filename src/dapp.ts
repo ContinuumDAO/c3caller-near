@@ -1,15 +1,12 @@
-import { near, AccountId, call, initialize, NearBindgen, NearPromise, PromiseIndex } from "near-sdk-js"
+import { near, AccountId, call, view, initialize, NearBindgen, NearPromise, PromiseIndex } from "near-sdk-js"
 
-/* WEB3 */
-// import { encodeFunctionCall } from "web3-eth-abi"
-/* MM */
-import { encode } from "@metamask/abi-utils"
+import { encodeFunctionCall } from "web3-eth-abi"
 
 import { C3CallerDapp } from "./c3caller_dapp"
 
 
 @NearBindgen({})
-class Dapp extends C3CallerDapp {
+class DApp extends C3CallerDapp {
 
   @initialize({ privateFunction: true })
   init({ c3_caller, dapp_id }: { c3_caller: AccountId, dapp_id: bigint }) {
@@ -26,29 +23,26 @@ class Dapp extends C3CallerDapp {
     const to_chain_id = "1" // Ethereum
 
     // ABI function fragment for `function transfer(address recipient, uint256 amount)`
-    // const abi_transfer_fragment = {
-    //   name: "transfer",
-    //   type: "function",
-    //   inputs: [
-    //     {
-    //       type: "address",
-    //       name: "recipient"
-    //     },
-    //     {
-    //       type: "uint256",
-    //       name: "amount"
-    //     }
-    //   ]
-    // }
+    const abi_transfer_fragment = {
+      name: "transfer",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "recipient"
+        },
+        {
+          type: "uint256",
+          name: "amount"
+        }
+      ]
+    }
 
-    // const data = encodeFunctionCall(
-    //   abi_transfer_fragment,
-    //   [recipient, amount]
-    // )
+    const data = encodeFunctionCall(
+      abi_transfer_fragment,
+      [recipient, amount]
+    )
 
-    // const selector = ""
-    const calldata = encode(["address", "uint256"], [recipient, amount])
-    const data = ""
     const extra = ""
 
     return this.c3call({ to, to_chain_id, data, extra }).asReturn()
@@ -62,6 +56,16 @@ class Dapp extends C3CallerDapp {
     } else {
       near.log("C3Call unsuccessful")
     }
+  }
+
+  @view({})
+  get_c3caller(): AccountId {
+    return this.c3caller
+  }
+
+  @view({})
+  get_dapp_id(): bigint {
+    return this.dapp_id
   }
 }
 

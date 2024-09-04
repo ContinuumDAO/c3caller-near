@@ -55,7 +55,7 @@ class C3Caller extends C3UUIDKeeper {
     assert(to_chain_id.length > 0, "C3Caller: empty toChainID")
     assert(data.length > 0, "C3Caller: empty calldata")
 
-    const uuid = this.gen_uuid({ dapp_id, to, to_chain_id, data })
+    const uuid = this.gen_uuid({ dapp_id: dapp_id, to, to_chain_id, data })
 
     const c3call_log: C3CallerEventLogData = {
       standard: "c3caller",

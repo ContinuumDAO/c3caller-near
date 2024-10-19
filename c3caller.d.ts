@@ -202,7 +202,7 @@ interface C3NEARMessage {
 
 interface ExecutedMessage {
   message: C3NEARMessage,
-  dapp_id: bigint
+  dapp_id: string
 }
 
 interface C3Executable {

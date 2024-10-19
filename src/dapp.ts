@@ -8,27 +8,27 @@ import { C3CallerDapp } from "./c3caller_dapp"
 @NearBindgen({})
 class DApp extends C3CallerDapp {
 
-  c3call_nonce: bigint = BigInt(0)
+  c3call_nonce: number = 0
 
   @initialize({ privateFunction: true })
   init({ c3caller, dapp_id }: { c3caller: AccountId, dapp_id: string }) {
     this.c3caller = c3caller
-    this.dapp_id = BigInt(dapp_id)
+    this.dapp_id = dapp_id
   }
 
-  // // test only
-  // @call({ privateFunction: true })
-  // reinitialize({ c3caller, dapp_id }: { c3caller: AccountId, dapp_id: string }) {
-  //   this.c3caller = c3caller
-  //   this.dapp_id = BigInt(dapp_id)
-  // }
+  // test only
+  @call({ privateFunction: true })
+  reinitialize({ c3caller, dapp_id }: { c3caller: AccountId, dapp_id: string }) {
+    this.c3caller = c3caller
+    this.dapp_id = dapp_id
+  }
 
   @call({})
   transfer_out_evm(
     { recipient, amount }:
     { recipient: string, amount: string }
   ): NearPromise {
-    const to = "0x0123456789012345678901234567890123456789" // target address on target chain (EVM address)
+    const to = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" // target address on target chain (EVM address)
     const to_chain_id = "1" // Ethereum
 
     // ABI function fragment for `function transfer(address recipient, uint256 amount)`
@@ -61,10 +61,10 @@ class DApp extends C3CallerDapp {
   c3call_callback() {
     const { success } = promiseResult()
     if (success) {
-      this.c3call_nonce = BigInt(Number(this.c3call_nonce) + 1)
-      near.log("C3Call successful")
+      this.c3call_nonce = this.c3call_nonce + 1
+      near.log(`C3Call successful.`)
     } else {
-      near.log("C3Call unsuccessful")
+      near.log(`C3Call unsuccessful.`)
     }
   }
 
@@ -74,12 +74,12 @@ class DApp extends C3CallerDapp {
   }
 
   @view({})
-  get_dapp_id(): bigint {
+  get_dapp_id(): string {
     return this.dapp_id
   }
 
   @view({})
-  get_c3call_nonce(): bigint {
+  get_c3call_nonce(): number {
     return this.c3call_nonce
   }
 }

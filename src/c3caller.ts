@@ -1,7 +1,7 @@
 import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromise, LookupMap, PromiseIndex } from "near-sdk-js"
 
 import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
-import { decodeParameters } from "web3-eth-abi"
+import { encodeParameters, decodeParameters } from "web3-eth-abi"
 
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
 import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "../c3caller"
@@ -9,6 +9,7 @@ import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Exec
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
 const THIRTY_TGAS = BigInt("30000000000000")
+const MAX_TGAS = BigInt("300000000000000")
 
 
 @NearBindgen({ requireInit: true })
@@ -19,13 +20,10 @@ class C3Caller extends C3UUIDKeeper {
   test: string = "test"
 
   completed_swapin: LookupMap<boolean> = new LookupMap<boolean>("completed_swapin")
-  uuid_2_nonce: LookupMap<bigint> = new LookupMap<bigint>("uuid_2_nonce")
   exec_context: LookupMap<C3Context> = new LookupMap<C3Context>("exec_context")
   fallback_context: LookupMap<C3Context> = new LookupMap<C3Context>("fallback_context")
   message_data: LookupMap<ExecutedMessage> = new LookupMap<ExecutedMessage>("message_data")
   selector_data: LookupMap<C3Executable> = new LookupMap<C3Executable>("selector_data")
-
-  current_nonce: bigint = ZERO
 
   @initialize({ privateFunction: true })
   init() {
@@ -47,15 +45,15 @@ class C3Caller extends C3UUIDKeeper {
   @call({})
   c3call(
     { dapp_id, caller, to, to_chain_id, data, extra }:
-    { dapp_id: bigint, caller: AccountId, to: string, to_chain_id: string, data: string, extra: string }
+    { dapp_id: string, caller: AccountId, to: string, to_chain_id: string, data: string, extra: string }
   ) {
     assert(!this.paused, "C3Caller: paused")
-    assert(dapp_id !== ZERO, "C3Caller: empty dappID")
+    assert(dapp_id !== "0", "C3Caller: empty dappID")
     assert(to.length > 0, "C3Caller: empty to")
     assert(to_chain_id.length > 0, "C3Caller: empty toChainID")
     assert(data.length > 0, "C3Caller: empty calldata")
 
-    const uuid = this.gen_uuid({ dapp_id: dapp_id, to, to_chain_id, data })
+    const uuid = this.gen_uuid({ dapp_id, to, to_chain_id, data })
 
     const c3call_log: C3CallerEventLogData = {
       standard: "c3caller",
@@ -63,7 +61,7 @@ class C3Caller extends C3UUIDKeeper {
       event: "c3_call",
       data: [
         {
-          dappID: dapp_id.toString(),
+          dappID: dapp_id,
           uuid,
           caller,
           toChainID: to_chain_id,
@@ -81,10 +79,10 @@ class C3Caller extends C3UUIDKeeper {
   @call({})
   c3broadcast(
     { dapp_id, caller, to, to_chain_ids, data }:
-    { dapp_id: bigint, caller: AccountId, to: string[], to_chain_ids: string[], data: string }
+    { dapp_id: string, caller: AccountId, to: string[], to_chain_ids: string[], data: string }
   ) {
     assert(!this.paused, "C3Caller: paused")
-    assert(dapp_id !== ZERO, "C3Caller: empty dappID")
+    assert(dapp_id !== "0", "C3Caller: empty dappID")
     assert(to.length > 0, "C3Caller: empty to")
     assert(to_chain_ids.length > 0, "C3Caller: empty toChainID")
     assert(data.length > 0, "C3Caller: empty calldata")
@@ -171,9 +169,9 @@ class C3Caller extends C3UUIDKeeper {
 
     // arbitrary function call on NEAR (must be registered in this contract)
     const exec_call = NearPromise.new(message.to)
-      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, THIRTY_TGAS)
+      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, MAX_TGAS)
     const result_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("execute_callback", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
+      .functionCall("execute_callback", JSON.stringify({ dapp_id, message }), ZERO, MAX_TGAS)
 
     return exec_call.then(result_callback).asReturn()
   }
@@ -268,9 +266,9 @@ class C3Caller extends C3UUIDKeeper {
 
     // arbitrary function call on NEAR (must be registered in this contract)
     const fallback_call = NearPromise.new(target)
-      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, THIRTY_TGAS)
+      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, MAX_TGAS)
     const result_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("c3_fallback_callback", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
+      .functionCall("c3_fallback_callback", JSON.stringify({ dapp_id, message }), ZERO, MAX_TGAS)
     
     return fallback_call.then(result_callback).asReturn()
   }
@@ -343,9 +341,12 @@ class C3Caller extends C3UUIDKeeper {
     const sig_bytes = hexToBytes(sig_hex)
     const sig_hashed = near.keccak256(sig_bytes)
     const hashed_signature_hex = bytesToHex(sig_hashed)
+    return hashed_signature_hex.slice(0, 10) // 4-byte selector
+  }
 
-    const selector = hashed_signature_hex.slice(2, 10) // 4-byte selector
-    return "0x" + selector
+  @call({})
+  gen_uuid(args: { dapp_id: string, to: string, to_chain_id: string, data: string }): string {
+    return super.gen_uuid(args)
   }
 }
 

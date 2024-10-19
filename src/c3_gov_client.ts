@@ -9,12 +9,14 @@ export class C3GovClient {
 
   operators: LookupSet<AccountId> = new LookupSet("operators")
 
-  only_gov = () => {
-    assert(near.predecessorAccountId() == this.gov, "C3Gov: only Gov")
+  @view({})
+  only_gov() {
+    assert(near.signerAccountId() == this.gov, "C3Gov: only Gov")
   }
 
-  only_operator = () => {
-    const caller: AccountId = near.predecessorAccountId()
+  @view({})
+  only_operator() {
+    const caller: AccountId = near.signerAccountId()
     assert(caller == this.gov || this.operators.contains(caller), "C3Gov: only Operator")
   }
 

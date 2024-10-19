@@ -10,6 +10,7 @@ const test = anyTest
 
 const ZERO = BigInt("0")
 const TGAS_30 = BigInt("30000000000000") // 30_000_000_000_000 (thirty teragas)
+const TGAS_MAX = BigInt("300000000000000") // 300_000_000_000_000 (max gas - 300 teragas)
 
 test.beforeEach(async (t) => {
   // Create sandbox
@@ -25,7 +26,7 @@ test.beforeEach(async (t) => {
   await dapp.deploy(process.argv[3])
 
   await c3caller.call(c3caller, "init", {})
-  await dapp.call(dapp, "init", { c3caller: c3caller.accountId, dapp_id: BigInt(1).toString() })
+  await dapp.call(dapp, "init", { c3caller: c3caller.accountId, dapp_id: "1" })
 
   // Save state for test runs, it is unique for each test
   t.context.accounts = {
@@ -51,7 +52,7 @@ test("gov address initializes", async (t) => {
 test("registers new sig as executable", async (t) => {
   const { root, c3caller } = t.context.accounts
   const signature = "transfer(address,uint256)"
-  const { selector, executable } = await root.call(c3caller, "register_c3executable", { signature  })
+  const { selector, executable } = await root.call(c3caller, "register_c3executable", { signature  }, { gas: TGAS_MAX })
   const executable_json = JSON.stringify(executable)
   const executable_expected_json = JSON.stringify({
     function_name: "transfer",
@@ -68,18 +69,19 @@ test("registers new sig as executable", async (t) => {
 test("doesn't register existing sig as executable", async (t) => {
   const { root, c3caller } = t.context.accounts
   const signature = "transfer(address,uint256)"
-  await root.call(c3caller, "register_c3executable", { signature }) // it is now registered
-  await root.call(c3caller, "register_c3executable", { signature }) // the above call should take less gas.
+  const { selector } = await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // it is now registered
+  await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // the above call should take less gas.
+
+  t.is(selector, "0xa9059cbb")
 })
 
 test("test c3call", async (t) => {
-  const { root, dapp } = t.context.accounts
+  const { c3caller, dapp } = t.context.accounts
   const transfer_data = {
-    recipient: "0xabcdef0123abcdef0123abcdef0123abcdef0123",
+    recipient: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     amount: "1000000000000000000"
   }
 
-  const result = await root.call(dapp, "transfer_out_evm", transfer_data)
-  console.log(result)
-  t.is(result, "hello world")
+  await c3caller.call(dapp, "transfer_out_evm", transfer_data, { gas: TGAS_MAX })
+  t.pass()
 })

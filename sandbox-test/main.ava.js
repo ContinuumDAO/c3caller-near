@@ -78,10 +78,21 @@ test("doesn't register existing sig as executable", async (t) => {
 test("test c3call", async (t) => {
   const { c3caller, dapp } = t.context.accounts
   const transfer_data = {
-    recipient: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    recipient: "0x1111111111111111111111111111111111111111",
     amount: "1000000000000000000"
   }
 
   await c3caller.call(dapp, "transfer_out_evm", transfer_data, { gas: TGAS_MAX })
+  t.pass()
+})
+
+test("test_c3broadcast", async (t) => {
+  const { c3caller, dapp } = t.context.accounts
+  const transfer_data = {
+    recipient: "0x1111111111111111111111111111111111111111",
+    amount: "1000000000000000000"
+  }
+
+  await c3caller.call(dapp, "transfer_out_evms", transfer_data, { gas: TGAS_MAX })
   t.pass()
 })

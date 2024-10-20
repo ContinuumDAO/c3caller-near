@@ -6,12 +6,11 @@ interface C3Executable {
 }
 
 const ZERO = BigInt(0)
-const TGAS_30 = BigInt("30000000000000")
-const TGAS_100 = BigInt("100000000000000")
-const TGAS_MAX = BigInt("300000000000000")
+const TGAS_DEFAULT = BigInt("30000000000000")
+const TGAS_C3CALL = BigInt("150000000000000")
 const NO_ARGS = JSON.stringify({})
 
-export class C3CallerDapp {
+export class C3CallerDApp {
   c3caller: AccountId = ""
   dapp_id: string = ""
 
@@ -38,11 +37,11 @@ export class C3CallerDapp {
 
     /// call to c3caller contract - this will create the c3call event that will be transmitted cross-chain
     const c3call_promise = NearPromise.new(c3caller)
-      .functionCall("c3call", JSON.stringify(c3call_data), ZERO, TGAS_100)
+      .functionCall("c3call", JSON.stringify(c3call_data), ZERO, TGAS_C3CALL)
     /// once the c3call has been made, call back with the result
     /// if it failed, this gives the dapp an opportunity to revert any changes made to state
     const c3call_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("c3call_callback", JSON.stringify({}), ZERO, TGAS_30)
+      .functionCall("c3call_callback", JSON.stringify({}), ZERO, TGAS_DEFAULT)
     
     return c3call_promise.then(c3call_callback).asReturn()
   }
@@ -51,6 +50,7 @@ export class C3CallerDapp {
     { to, to_chain_ids, data }:
       { to: string[], to_chain_ids: string[], data: string }
   ): NearPromise {
+    const c3caller = this.c3caller
     const dapp_id = this.dapp_id
 
     const c3broadcast_data = {
@@ -61,17 +61,20 @@ export class C3CallerDapp {
       data
     }
 
-    const c3broadcast_promise = NearPromise.new(this.c3caller)
-      .functionCall("c3broadcast", JSON.stringify(c3broadcast_data), ZERO, TGAS_MAX)
+    /// call to c3caller contract - this will create the c3call events that will be transmitted cross-chain
+    const c3broadcast_promise = NearPromise.new(c3caller)
+      .functionCall("c3broadcast", JSON.stringify(c3broadcast_data), ZERO, TGAS_C3CALL)
+    /// once the c3broadcast has been made, call back with the result
+    /// if it failed, this gives the dapp an opportunity to revert any changes made to state
     const c3broadcast_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("c3broadcast_callback", JSON.stringify({}), ZERO, TGAS_30)
+      .functionCall("c3call_callback", JSON.stringify({}), ZERO, TGAS_DEFAULT)
 
     return c3broadcast_promise.then(c3broadcast_callback).asReturn()
   }
 
   context(): NearPromise {
     const c3context_promise = NearPromise.new(this.c3caller)
-      .functionCall("get_context", NO_ARGS, ZERO, TGAS_30)
+      .functionCall("get_context", NO_ARGS, ZERO, TGAS_DEFAULT)
 
     return c3context_promise
   }

@@ -2,11 +2,11 @@ import { near, AccountId, call, view, initialize, NearBindgen, NearPromise, Prom
 
 import { encodeFunctionCall } from "web3-eth-abi"
 
-import { C3CallerDapp } from "./c3caller_dapp"
+import { C3CallerDApp } from "./c3caller_dapp"
 
 
 @NearBindgen({})
-class DApp extends C3CallerDapp {
+class DApp extends C3CallerDApp {
 
   c3call_nonce: number = 0
 
@@ -55,6 +55,47 @@ class DApp extends C3CallerDapp {
     const extra = ""
 
     return this.c3call({ to, to_chain_id, data, extra }).asReturn()
+  }
+
+  @call({})
+  transfer_out_evms(
+    { recipient, amount }:
+    { recipient: string, amount: string }
+  ): NearPromise {
+    const to = [
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "0xcccccccccccccccccccccccccccccccccccccccc"
+    ] // target addresses on target chains (EVM address)
+
+    const to_chain_ids = [
+      "1",
+      "56",
+      "250"
+    ] // Ethereum, BSC Smartchain, Fantom
+
+    // ABI function fragment for `function transfer(address recipient, uint256 amount)`
+    const abi_transfer_fragment = {
+      name: "transfer",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "recipient"
+        },
+        {
+          type: "uint256",
+          name: "amount"
+        }
+      ]
+    }
+
+    const data = encodeFunctionCall(
+      abi_transfer_fragment,
+      [recipient, amount]
+    )
+
+    return this.c3broadcast({ to, to_chain_ids, data }).asReturn()
   }
 
   @call({ privateFunction: true })

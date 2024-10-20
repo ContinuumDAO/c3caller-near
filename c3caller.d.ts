@@ -196,7 +196,7 @@ interface C3NEARMessage {
   to: AccountId,
   from_chain_id: string,
   source_tx: string,
-  fallback_to: AccountId,
+  fallback_to: string,
   data: string
 }
 

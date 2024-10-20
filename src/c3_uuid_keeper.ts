@@ -3,8 +3,6 @@ import { hexToBytes, bytesToHex } from "web3-utils"
 import { encodeParameters } from "web3-eth-abi"
 import { C3GovClient } from "./c3_gov_client"
 
-const ONE: bigint = BigInt(1)
-
 export class C3UUIDKeeper extends C3GovClient {
   admin: AccountId = ""
 

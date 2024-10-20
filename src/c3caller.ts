@@ -1,7 +1,7 @@
 import { NearBindgen, near, call, view, AccountId, initialize, assert, NearPromise, LookupMap, PromiseIndex } from "near-sdk-js"
 
 import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
-import { encodeParameters, decodeParameters } from "web3-eth-abi"
+import { decodeParameters } from "web3-eth-abi"
 
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
 import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "../c3caller"
@@ -17,12 +17,9 @@ class C3Caller extends C3UUIDKeeper {
   context: C3Context = { swap_id: "", from_chain_id: "", source_tx: "" }
   paused: boolean = false
 
-  test: string = "test"
-
   completed_swapin: LookupMap<boolean> = new LookupMap<boolean>("completed_swapin")
   exec_context: LookupMap<C3Context> = new LookupMap<C3Context>("exec_context")
   fallback_context: LookupMap<C3Context> = new LookupMap<C3Context>("fallback_context")
-  message_data: LookupMap<ExecutedMessage> = new LookupMap<ExecutedMessage>("message_data")
   selector_data: LookupMap<C3Executable> = new LookupMap<C3Executable>("selector_data")
 
   @initialize({ privateFunction: true })
@@ -154,10 +151,14 @@ class C3Caller extends C3UUIDKeeper {
     assert(check_valid_sender == "true", "C3Caller: txSender invalid")
     assert(check_dapp_id == dapp_id, "C3Caller: dappID dismatch")
 
-    const context: C3Context = { swap_id: message.uuid, from_chain_id: message.from_chain_id, source_tx: message.source_tx }
+    const context: C3Context = {
+      swap_id: message.uuid,
+      from_chain_id: message.from_chain_id,
+      source_tx: message.source_tx
+    }
     this.exec_context.set(message.uuid, context)
 
-    const selector = message.data.slice(2, 12)
+    const selector = message.data.slice(2, 10) // abc12340
     const { function_name, parameter_types } = this.selector_data.get(selector)
 
     const decoded_calldata = decodeParameters(parameter_types, message.data)
@@ -184,6 +185,7 @@ class C3Caller extends C3UUIDKeeper {
     { dapp_id, message }:
     { dapp_id: bigint, message: C3NEARMessage }
   ) {
+    /// @todo do we remove this?
     this.exec_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
     const { success, result }: { success: boolean, result: string } = promiseResult()
     const resultParsed = JSON.parse(result)
@@ -252,9 +254,9 @@ class C3Caller extends C3UUIDKeeper {
     const context: C3Context = { swap_id: message.uuid, from_chain_id: message.from_chain_id, source_tx: message.source_tx }
     this.fallback_context.set(message.uuid, context)
 
-    const target: AccountId = message.to
+    const target: AccountId = message.to // original exec message.fallback_to
 
-    const selector = message.data.slice(2, 12)
+    const selector = message.data.slice(2, 10)
     const { function_name, parameter_types } = this.selector_data.get(selector)
 
     const decoded_calldata = decodeParameters(parameter_types, message.data)
@@ -265,6 +267,9 @@ class C3Caller extends C3UUIDKeeper {
     }
 
     // arbitrary function call on NEAR (must be registered in this contract)
+
+    /// @bug here we call fallback_to with the data originally intended to be executed on dest chain
+    ///      we actually want to call fallback_to:c3Fallback(message, function_name, arg_array)
     const fallback_call = NearPromise.new(target)
       .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, MAX_TGAS)
     const result_callback = NearPromise.new(near.currentAccountId())
@@ -278,6 +283,7 @@ class C3Caller extends C3UUIDKeeper {
   ///////////////////////////////////////////////////////////////
   @call({ privateFunction: true })
   c3_fallback_callback({ dapp_id, message }: { dapp_id: bigint, message: C3NEARMessage }) {
+    /// @todo do we remove this?
     this.fallback_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
     const { result }: { result: string } = JSON.parse(near.promiseResult(0 as PromiseIndex))
 
@@ -295,7 +301,7 @@ class C3Caller extends C3UUIDKeeper {
           fromChainID: message.from_chain_id,
           sourceTx: message.source_tx,
           data: message.data,
-          reason: result
+          reason: result // return value from c3Fallback (dev designed)
         }
       ]
     }

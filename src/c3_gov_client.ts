@@ -1,4 +1,4 @@
-import { AccountId, LookupMap, LookupSet, near, assert, call, view } from "near-sdk-js"
+import { AccountId, LookupMap, LookupSet, near, assert, call, view, initialize } from "near-sdk-js"
 import { C3CallerEventLogData } from "../c3caller"
 
 export class C3GovClient {
@@ -20,7 +20,7 @@ export class C3GovClient {
     assert(caller == this.gov || this.operators.contains(caller), "C3Gov: only Operator")
   }
 
-  @call({ privateFunction: true })
+  @initialize({ privateFunction: true })
   init_gov({ gov }: { gov: AccountId }) {
     const current_gov = this.gov
     this.gov = gov

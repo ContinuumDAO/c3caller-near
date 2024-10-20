@@ -1,33 +1,6 @@
 # c3caller-near
 
-## Events Model
-
-### Option A: NEAR NFT Events
-
-All events get emitted as a NEAR NFT event, as per standard NEP-171.
-
-This means any relayer can pick up the emitted events and interpret them as an NFT metadata update.
-
-Pros: Any NEAR event indexer can pick the events up without needing to know a special interface that is exclusive to C3Caller, because they already listen for NEP-171 event emissions.
-
-Cons: The data must be serialized into a single string (see `memo` field below) and abi-encoded in such a way that allows indexers to read which C3Caller event it is.
-
-```javascript
-const nftEventLogData = {
-    EVENT_JSON: {
-        "standard": "nep171",
-        "version": "1.1.0",
-        "event": "contract_metadata_update",
-        "data": [
-            {
-                "memo": "" // <- here is the serialized, abi encoded data of whatever the event is
-            }
-        ]
-    }
-}
-```
-
-### Option B: Native C3Caller Events
+## Communication with the Continuum Network - Events Model
 
 Events get emitted under a new events standard, `c3caller`.
 
@@ -37,27 +10,71 @@ Pros: Each event gets its own data structure and is easier to read by humans and
 
 Cons: Instead of using existing indexers, specialized indexers would have to query for the new event standard `c3caller`, meaning existing indexers could not read the events unless they know how they are defined.
 
-```javascript
-// C3Call called from NEAR to another chain
-const c3CallEventLogData = {
-    EVENT_JSON: {
-        "standard": "c3caller",
-        "version": "1.0.0",
-        "event": "c3_call",
-        "data": [
-            {
-                "dappID": 0,
-                "uuid": "0xabcd",
-                "caller": "user.near",
-                "toChainID": "1",
-                "to": "0xabcd",
-                "data": "0xabcd",
-                "extra": "0xabcd"
-            }
-        ]
-    }
-}
+### C3Call called from NEAR to another chain
 
+```json
+{
+  EVENT_JSON: {
+    "standard": "c3caller",
+    "version": "1.0.0",
+    "event": "c3_call",
+    "data": [
+      {
+    	  "dappID": "1",
+    	  "uuid": "0x3427e9b7e3cd8c8c0a78e6d4a88b139e6e62e154298f64e4b37faff9585a289d",
+    	  "caller": "dapp.test.near",
+    	  "toChainID": "1",
+    	  "to": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    	  "data": "0xa9059cbb00000000000000000000000011111111111111111111111111111111111111110000000000000000000000000000000000000000000000000de0b6b3a7640000",
+    	  "extra": ""
+      }
+    ]
+  }
+}
+```
+
+### C3Broadcast called from NEAR other chains
+
+```json
+{
+  EVENT_JSON: {
+		"standard": "c3caller",
+		"version": "1.0.0",
+		"event": "c3_call",
+		"data": [
+			{
+				"dappID": "1",
+			    "uuid": "0x3427e9b7e3cd8c8c0a78e6d4a88b139e6e62e154298f64e4b37faff9585a289d",
+				"caller": "dapp.test.near",
+				"toChainID": "1",
+				"to": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			    "data": "0xa9059cbb00000000000000000000000011111111111111111111111111111111111111110000000000000000000000000000000000000000000000000de0b6b3a7640000",
+				"extra": ""
+			},
+			{
+				"dappID": "1",
+			    "uuid": "0x21b1379a4cb28f8dad85ee42fa3798a2d6b059c4f639981e1617be02d84b6b2e",
+				"caller": "dapp.test.near",
+				"toChainID": "56",
+				"to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			    "data": "0xa9059cbb00000000000000000000000011111111111111111111111111111111111111110000000000000000000000000000000000000000000000000de0b6b3a7640000",
+				"extra": ""
+			},
+			{
+				"dappID": "1",
+			    "uuid": "0x037d02cf9d601b7c623ac88e4a9213e3cb01cd219e90d07a669227ef1394e6e9",
+				"caller": "dapp.test.near",
+				"toChainID": "250",
+				"to": "0xdddddddddddddddddddddddddddddddddddddddd",
+			    "data": "0xa9059cbb00000000000000000000000011111111111111111111111111111111111111110000000000000000000000000000000000000000000000000de0b6b3a7640000",
+				"extra": ""
+			}
+		]
+	}
+}
+```
+
+```javascript
 // C3Call received on NEAR, failed execution, falling back
 const fallbackCallEventLogData = {
     EVENT_JSON: {
@@ -117,8 +134,3 @@ const execFallbackEventLogData = {
     }
 }
 ```
-
-
-## To test
-
-1. `console.log` the result value from a cross-contract call (as seen in callback) to see what it returns

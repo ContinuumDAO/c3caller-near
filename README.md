@@ -14,7 +14,7 @@ Cons: Instead of using existing indexers, specialized indexers would have to que
 
 ```json
 {
-  EVENT_JSON: {
+  "EVENT_JSON": {
     "standard": "c3caller",
     "version": "1.0.0",
     "event": "c3_call",
@@ -37,7 +37,7 @@ Cons: Instead of using existing indexers, specialized indexers would have to que
 
 ```json
 {
-  EVENT_JSON: {
+  "EVENT_JSON": {
 		"standard": "c3caller",
 		"version": "1.0.0",
 		"event": "c3_call",

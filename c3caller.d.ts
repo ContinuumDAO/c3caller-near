@@ -210,6 +210,12 @@ interface C3Executable {
   parameter_types: string[]
 }
 
+interface C3Result {
+  success: boolean,
+  message: string,
+  uuid: string[]
+}
+
 
 declare global {
   var TextEncoder: typeof _TextEncoder
@@ -225,5 +231,6 @@ export {
   C3Context,
   C3NEARMessage,
   ExecutedMessage,
-  C3Executable
+  C3Executable,
+  C3Result
 }

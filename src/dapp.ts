@@ -1,14 +1,11 @@
 import { near, AccountId, call, view, initialize, NearBindgen, NearPromise, PromiseIndex } from "near-sdk-js"
-
 import { encodeFunctionCall } from "web3-eth-abi"
-
 import { C3CallerDApp } from "./c3caller_dapp"
+import { C3Result } from "../c3caller"
 
 
 @NearBindgen({})
 class DApp extends C3CallerDApp {
-
-  c3call_nonce: number = 0
 
   @initialize({ privateFunction: true })
   init({ c3caller, dapp_id }: { c3caller: AccountId, dapp_id: string }) {
@@ -100,12 +97,20 @@ class DApp extends C3CallerDApp {
 
   @call({ privateFunction: true })
   c3call_callback() {
-    const { success } = promiseResult()
+    const { success, result } = c3_result()
+
     if (success) {
-      this.c3call_nonce = this.c3call_nonce + 1
-      near.log(`C3Call successful.`)
+      // overall call passed
+      if (result.success) {
+        // overall call passed, c3call passed
+        near.log(JSON.stringify(result))
+      } else {
+        // overall call passed, c3call failed
+        near.log(JSON.stringify(result))
+      }
     } else {
-      near.log(`C3Call unsuccessful.`)
+      // overall call failed, c3call subsequently failed
+      near.log(`Unknown error occurred.`)
     }
   }
 
@@ -118,21 +123,16 @@ class DApp extends C3CallerDApp {
   get_dapp_id(): string {
     return this.dapp_id
   }
-
-  @view({})
-  get_c3call_nonce(): number {
-    return this.c3call_nonce
-  }
 }
 
 
-const promiseResult = (): { success: boolean, result: string } => {
-  let success: boolean, result: string
+const c3_result = (): { success: boolean, result: C3Result } => {
+  let success: boolean, result: C3Result
 
   try {
     success = true
-    result = near.promiseResult(0 as PromiseIndex)
-  } catch {
+    result = JSON.parse(near.promiseResult(0 as PromiseIndex)) // this only passes if the call succeeded
+  } catch (err) {
     success = false
     result = undefined
   }

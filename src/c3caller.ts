@@ -43,74 +43,100 @@ class C3Caller extends C3UUIDKeeper {
   c3call(
     { dapp_id, caller, to, to_chain_id, data, extra }:
     { dapp_id: string, caller: AccountId, to: string, to_chain_id: string, data: string, extra: string }
-  ) {
-    assert(!this.paused, "C3Caller: paused")
-    assert(dapp_id !== "0", "C3Caller: empty dappID")
-    assert(to.length > 0, "C3Caller: empty to")
-    assert(to_chain_id.length > 0, "C3Caller: empty toChainID")
-    assert(data.length > 0, "C3Caller: empty calldata")
+  ): { success: boolean, message: string, uuid?: string[] } {
+    try {
+      assert(!this.paused, "C3Caller: paused")
+      assert(dapp_id !== "0", "C3Caller: empty dappID")
+      assert(to.length > 0, "C3Caller: empty to")
+      assert(to_chain_id.length > 0, "C3Caller: empty toChainID")
+      assert(data.length > 0, "C3Caller: empty calldata")
 
-    const uuid = this.gen_uuid({ dapp_id, to, to_chain_id, data })
+      const uuid = this.gen_uuid({ dapp_id, to, to_chain_id, data })
 
-    const c3call_log: C3CallerEventLogData = {
-      standard: "c3caller",
-      version: "1.0.0",
-      event: "c3_call",
-      data: [
-        {
-          dappID: dapp_id,
-          uuid,
-          caller,
-          toChainID: to_chain_id,
-          to,
-          data,
-          extra
-        }
-      ]
+      const c3call_log: C3CallerEventLogData = {
+        standard: "c3caller",
+        version: "1.0.0",
+        event: "c3_call",
+        data: [
+          {
+            dappID: dapp_id,
+            uuid,
+            caller,
+            toChainID: to_chain_id,
+            to,
+            data,
+            extra
+          }
+        ]
+      }
+
+      const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
+      near.log(c3call_log_json)
+
+      return {
+        success: true,
+        message: `C3Call successful.`,
+        uuid: [uuid]
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: `C3Call unsuccessful: ${ err.message }`
+      }
     }
-
-    const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
-    near.log(c3call_log_json)
   }
 
   @call({})
   c3broadcast(
     { dapp_id, caller, to, to_chain_ids, data }:
     { dapp_id: string, caller: AccountId, to: string[], to_chain_ids: string[], data: string }
-  ) {
-    assert(!this.paused, "C3Caller: paused")
-    assert(dapp_id !== "0", "C3Caller: empty dappID")
-    assert(to.length > 0, "C3Caller: empty to")
-    assert(to_chain_ids.length > 0, "C3Caller: empty toChainID")
-    assert(data.length > 0, "C3Caller: empty calldata")
-    assert(to.length === to_chain_ids.length, "C3Caller: tochains length dismatch")
+  ): { success: boolean, message: string, uuid?: string[] } {
+    try {
+      assert(!this.paused, "C3Caller: paused")
+      assert(dapp_id !== "0", "C3Caller: empty dappID")
+      assert(to.length > 0, "C3Caller: empty to")
+      assert(to_chain_ids.length > 0, "C3Caller: empty toChainID")
+      assert(data.length > 0, "C3Caller: empty calldata")
+      assert(to.length === to_chain_ids.length, "C3Caller: tochains length dismatch")
 
-    const c3call_log_data = []
+      const c3call_log_data = []
 
-    for(let i = 0; i < to.length; i++) {
-      const uuid_args = { dapp_id, to: to[i], to_chain_id: to_chain_ids[i], data }
-      const uuid = this.gen_uuid(uuid_args)
+      for(let i = 0; i < to.length; i++) {
+        const uuid_args = { dapp_id, to: to[i], to_chain_id: to_chain_ids[i], data }
+        const uuid = this.gen_uuid(uuid_args)
 
-      c3call_log_data.push({
-        dappID: dapp_id,
-        uuid,
-        caller,
-        toChainID: to_chain_ids[i],
-        to: to[i],
-        data,
-        extra: ""
-      })
+        c3call_log_data.push({
+          dappID: dapp_id,
+          uuid,
+          caller,
+          toChainID: to_chain_ids[i],
+          to: to[i],
+          data,
+          extra: ""
+        })
+      }
+
+      const c3call_log: C3CallerEventLogData = {
+        standard: "c3caller",
+        version: "1.0.0",
+        event: "c3_call",
+        data: c3call_log_data
+      }
+
+      const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
+      near.log(c3call_log_json)
+
+      return {
+        success: true,
+        message: "C3Broadcast successful.",
+        uuid: c3call_log_data.map(c3 => c3.uuid)
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: `C3Broadcast unsuccessful: ${ err.message }`
+      }
     }
-
-    const c3call_log: C3CallerEventLogData = {
-      standard: "c3caller",
-      version: "1.0.0",
-      event: "c3_call",
-      data: c3call_log_data
-    }
-
-    const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
-    near.log(c3call_log_json)
   }
 
 

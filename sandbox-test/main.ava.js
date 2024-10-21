@@ -8,8 +8,7 @@ import { setDefaultResultOrder } from "dns"; setDefaultResultOrder("ipv4first") 
  */
 const test = anyTest
 
-const ZERO = BigInt("0")
-const TGAS_30 = BigInt("30000000000000") // 30_000_000_000_000 (thirty teragas)
+// const TGAS_DEFAULT = BigInt("30000000000000") // 30_000_000_000_000 (thirty teragas)
 const TGAS_MAX = BigInt("300000000000000") // 300_000_000_000_000 (max gas - 300 teragas)
 
 test.beforeEach(async (t) => {

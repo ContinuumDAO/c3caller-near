@@ -43,7 +43,7 @@ class C3Caller extends C3UUIDKeeper {
   c3call(
     { dapp_id, caller, to, to_chain_id, data, extra }:
     { dapp_id: string, caller: AccountId, to: string, to_chain_id: string, data: string, extra: string }
-  ): { success: boolean, message: string, uuid?: string[] } {
+  ): { success: boolean, message: string, uuid?: string } {
     try {
       assert(!this.paused, "C3Caller: paused")
       assert(dapp_id !== "0", "C3Caller: empty dappID")
@@ -76,7 +76,7 @@ class C3Caller extends C3UUIDKeeper {
       return {
         success: true,
         message: `C3Call successful.`,
-        uuid: [uuid]
+        uuid: uuid
       }
     } catch (err) {
       return {
@@ -146,7 +146,7 @@ class C3Caller extends C3UUIDKeeper {
   @call({})
   execute(
     { dapp_id, tx_sender, message }:
-    { dapp_id: bigint, tx_sender: AccountId, message: C3NEARMessage }
+    { dapp_id: string, tx_sender: string, message: C3NEARMessage }
   ) {
     this.only_operator()
     assert(!this.paused, "C3Caller: paused")
@@ -169,10 +169,10 @@ class C3Caller extends C3UUIDKeeper {
   @call({ privateFunction: true })
   execute_validated(
     { dapp_id, message }:
-    { dapp_id: bigint, message: C3NEARMessage }
+    { dapp_id: string, message: C3NEARMessage }
   ) {
     const check_valid_sender = JSON.parse(near.promiseResult(0 as PromiseIndex))
-    const check_dapp_id = BigInt(JSON.parse(near.promiseResult(1 as PromiseIndex)))
+    const check_dapp_id = JSON.parse(near.promiseResult(1 as PromiseIndex))
 
     assert(check_valid_sender == "true", "C3Caller: txSender invalid")
     assert(check_dapp_id == dapp_id, "C3Caller: dappID dismatch")
@@ -209,7 +209,7 @@ class C3Caller extends C3UUIDKeeper {
   @call({ privateFunction: true })
   execute_callback(
     { dapp_id, message }:
-    { dapp_id: bigint, message: C3NEARMessage }
+    { dapp_id: string, message: C3NEARMessage }
   ) {
     /// @todo do we remove this?
     this.exec_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
@@ -379,6 +379,11 @@ class C3Caller extends C3UUIDKeeper {
   @call({})
   gen_uuid(args: { dapp_id: string, to: string, to_chain_id: string, data: string }): string {
     return super.gen_uuid(args)
+  }
+
+  @call({})
+  add_operator({ op }: { op: AccountId }) {
+    super.add_operator({ op })
   }
 }
 

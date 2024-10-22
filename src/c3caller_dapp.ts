@@ -1,4 +1,5 @@
-import { AccountId, LookupMap, near, NearPromise } from "near-sdk-js"
+import { AccountId, LookupMap, near, view, NearPromise, PromiseIndex, assert } from "near-sdk-js"
+import { C3Result } from "../c3caller"
 
 interface C3Executable {
   function_name: string,
@@ -14,8 +15,13 @@ export class C3CallerDApp {
   c3caller: AccountId = ""
   dapp_id: string = ""
 
-  sol_signature: LookupMap<string> = new LookupMap<string>("sol_signature")
-  selector_data: LookupMap<C3Executable> = new LookupMap<C3Executable>("selector_data")
+  // sol_signature: LookupMap<string> = new LookupMap<string>("sol_signature")
+  // selector_data: LookupMap<C3Executable> = new LookupMap<C3Executable>("selector_data")
+
+  only_c3caller() {
+    const caller: AccountId = near.predecessorAccountId()
+    assert(caller === this.c3caller, "C3Caller: Only C3Caller")
+  }
 
   c3call(
     { to, to_chain_id, data, extra }:
@@ -67,11 +73,36 @@ export class C3CallerDApp {
     /// once the c3broadcast has been made, call back with the result
     /// if it failed, this gives the dapp an opportunity to revert any changes made to state
     const c3broadcast_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("c3call_callback", JSON.stringify({}), ZERO, TGAS_DEFAULT)
+      .functionCall("c3broadcast_callback", JSON.stringify({}), ZERO, TGAS_DEFAULT)
 
     return c3broadcast_promise.then(c3broadcast_callback).asReturn()
   }
 
+  c3_result(): { success: boolean, result: C3Result } {
+    let success: boolean, result: C3Result
+
+    try {
+      success = true
+      result = JSON.parse(near.promiseResult(0 as PromiseIndex)) // this only passes if the call succeeded
+    } catch (err) {
+      success = false
+      result = undefined
+    }
+
+    return { success, result }
+  }
+
+  @view({})
+  get_c3caller(): AccountId {
+    return this.c3caller
+  }
+
+  @view({})
+  get_dapp_id(): string {
+    return this.dapp_id
+  }
+
+  @view({})
   context(): NearPromise {
     const c3context_promise = NearPromise.new(this.c3caller)
       .functionCall("get_context", NO_ARGS, ZERO, TGAS_DEFAULT)

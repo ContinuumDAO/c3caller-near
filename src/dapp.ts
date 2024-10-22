@@ -1,103 +1,89 @@
-import { near, AccountId, call, view, initialize, NearBindgen, NearPromise, PromiseIndex } from "near-sdk-js"
+import { near, AccountId, call, view, initialize, NearBindgen, NearPromise, LookupMap, assert } from "near-sdk-js"
 import { encodeFunctionCall } from "web3-eth-abi"
 import { C3CallerDApp } from "./c3caller_dapp"
-import { C3Result } from "../c3caller"
 
 
 @NearBindgen({})
 class DApp extends C3CallerDApp {
 
+  balance: LookupMap<bigint> = new LookupMap<bigint>("balance")
+
   @initialize({ privateFunction: true })
   init({ c3caller, dapp_id }: { c3caller: AccountId, dapp_id: string }) {
     this.c3caller = c3caller
     this.dapp_id = dapp_id
+
+    this._mint({ account: near.signerAccountId(), amount: "2000000000000000000" }) // 2 ether
   }
 
-  // test only
-  @call({ privateFunction: true })
-  reinitialize({ c3caller, dapp_id }: { c3caller: AccountId, dapp_id: string }) {
-    this.c3caller = c3caller
-    this.dapp_id = dapp_id
+  // internal
+  _mint({ account, amount }: { account: AccountId, amount: string }) {
+    const amount_n = BigInt(amount)
+    const prev_bal = this.get_balance({ account })
+    const new_bal = prev_bal + amount_n
+    this.balance.set(account, new_bal)
+  }
+
+  // internal
+  _burn({ account, amount }: { account: AccountId, amount: string }) {
+    const amount_n = BigInt(amount)
+    const prev_bal = this.get_balance({ account })
+    assert(amount_n <= prev_bal, "C3CallerDApp: Insufficient balance")
+    const new_bal = prev_bal - amount_n
+    this.balance.set(account, new_bal)
+  }
+
+  @call({})
+  mint({ account, amount }: { account: AccountId, amount: string }) {
+    super.only_c3caller()
+    this._mint({ account, amount })
+  }
+
+  @call({})
+  burn({ account, amount }: { account: AccountId, amount: string }) {
+    super.only_c3caller()
+    this._burn({ account, amount })
+  }
+
+  @view({})
+  get_balance({ account }: { account: AccountId }): bigint {
+    const bal = this.balance.get(account)
+    if (bal == null) return BigInt("0")
+    else return bal
   }
 
   @call({})
   transfer_out_evm(
-    { recipient, amount }:
-    { recipient: string, amount: string }
+    { account, amount, to, to_chain_ids }:
+    { account: string, amount: string, to: string[], to_chain_ids: string[] }
   ): NearPromise {
-    const to = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" // target address on target chain (EVM address)
-    const to_chain_id = "1" // Ethereum
+    // ABI function fragment for `function mint(address account, uint256 amount)`
+    const abi_mint_fragment = { name: "mint", type: "function", inputs: [
+      { type: "address", name: "account" },
+      { type: "uint256", name: "amount" }
+    ]}
 
-    // ABI function fragment for `function transfer(address recipient, uint256 amount)`
-    const abi_transfer_fragment = {
-      name: "transfer",
-      type: "function",
-      inputs: [
-        {
-          type: "address",
-          name: "recipient"
-        },
-        {
-          type: "uint256",
-          name: "amount"
-        }
-      ]
-    }
-
-    const data = encodeFunctionCall(
-      abi_transfer_fragment,
-      [recipient, amount]
-    )
+    // Parses the calldata into EVM-executable data
+    const data = encodeFunctionCall(abi_mint_fragment, [account, amount])
 
     const extra = ""
 
-    return this.c3call({ to, to_chain_id, data, extra }).asReturn()
-  }
+    let c3_promise: NearPromise
 
-  @call({})
-  transfer_out_evms(
-    { recipient, amount }:
-    { recipient: string, amount: string }
-  ): NearPromise {
-    const to = [
-      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "0xcccccccccccccccccccccccccccccccccccccccc"
-    ] // target addresses on target chains (EVM address)
+    this._burn({ account: near.signerAccountId(), amount })
 
-    const to_chain_ids = [
-      "1",
-      "56",
-      "250"
-    ] // Ethereum, BSC Smartchain, Fantom
-
-    // ABI function fragment for `function transfer(address recipient, uint256 amount)`
-    const abi_transfer_fragment = {
-      name: "transfer",
-      type: "function",
-      inputs: [
-        {
-          type: "address",
-          name: "recipient"
-        },
-        {
-          type: "uint256",
-          name: "amount"
-        }
-      ]
+    if (to_chain_ids.length === 1) {
+      c3_promise = this.c3call({ to: to[0], to_chain_id: to_chain_ids[0], data, extra })
+    } else {
+      c3_promise = this.c3broadcast({ to, to_chain_ids, data })
     }
 
-    const data = encodeFunctionCall(
-      abi_transfer_fragment,
-      [recipient, amount]
-    )
-
-    return this.c3broadcast({ to, to_chain_ids, data }).asReturn()
+    return c3_promise.asReturn()
   }
 
   @call({ privateFunction: true })
   c3call_callback() {
-    const { success, result } = c3_result()
+    const { success, result } = super.c3_result()
 
     if (success) {
       // overall call passed
@@ -114,28 +100,24 @@ class DApp extends C3CallerDApp {
     }
   }
 
-  @view({})
-  get_c3caller(): AccountId {
-    return this.c3caller
+  @call({ privateFunction: true })
+  c3broadcast_callback() {
+    const { success, result } = super.c3_result()
+
+    if (success) {
+      if (result.success) {
+        near.log(JSON.stringify(result))
+      } else {
+        near.log(JSON.stringify(result))
+      }
+    } else {
+      near.log(`Unknown error occured.`)
+    }
   }
 
   @view({})
-  get_dapp_id(): string {
-    return this.dapp_id
+  is_vaild_sender(): boolean {
+    return true // validate sender
   }
 }
 
-
-const c3_result = (): { success: boolean, result: C3Result } => {
-  let success: boolean, result: C3Result
-
-  try {
-    success = true
-    result = JSON.parse(near.promiseResult(0 as PromiseIndex)) // this only passes if the call succeeded
-  } catch (err) {
-    success = false
-    result = undefined
-  }
-
-  return { success, result }
-}

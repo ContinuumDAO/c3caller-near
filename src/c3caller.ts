@@ -4,7 +4,7 @@ import { bytesToHex, hexToBytes, stringToHex } from "web3-utils"
 import { decodeParameters } from "web3-eth-abi"
 
 import { C3UUIDKeeper } from "./c3_uuid_keeper"
-import { C3CallerEventLogData, C3Context, C3NEARMessage, ExecutedMessage, C3Executable } from "../c3caller"
+import { C3CallerEventLogData, C3Context, C3NEARMessage, C3Executable, C3Result } from "../c3caller"
 
 const ZERO = BigInt(0)
 const NO_ARGS = JSON.stringify({})
@@ -43,7 +43,7 @@ class C3Caller extends C3UUIDKeeper {
   c3call(
     { dapp_id, caller, to, to_chain_id, data, extra }:
     { dapp_id: string, caller: AccountId, to: string, to_chain_id: string, data: string, extra: string }
-  ): { success: boolean, message: string, uuid?: string } {
+  ): C3Result {
     try {
       assert(!this.paused, "C3Caller: paused")
       assert(dapp_id !== "0", "C3Caller: empty dappID")
@@ -76,7 +76,7 @@ class C3Caller extends C3UUIDKeeper {
       return {
         success: true,
         message: `C3Call successful.`,
-        uuid: uuid
+        uuid
       }
     } catch (err) {
       return {
@@ -90,7 +90,7 @@ class C3Caller extends C3UUIDKeeper {
   c3broadcast(
     { dapp_id, caller, to, to_chain_ids, data }:
     { dapp_id: string, caller: AccountId, to: string[], to_chain_ids: string[], data: string }
-  ): { success: boolean, message: string, uuid?: string[] } {
+  ): C3Result {
     try {
       assert(!this.paused, "C3Caller: paused")
       assert(dapp_id !== "0", "C3Caller: empty dappID")
@@ -147,20 +147,24 @@ class C3Caller extends C3UUIDKeeper {
   execute(
     { dapp_id, tx_sender, message }:
     { dapp_id: string, tx_sender: string, message: C3NEARMessage }
-  ) {
-    this.only_operator()
-    assert(!this.paused, "C3Caller: paused")
-    assert(message.data.length > 0, "C3Caller: empty calldata")
-    assert(!this.is_completed({ uuid: message.uuid }), "C3Caller: already completed")
+  ): NearPromise {
+    try {
+      this.only_operator()
+      assert(!this.paused, "C3Caller: paused")
+      assert(message.data.length > 0, "C3Caller: empty calldata")
+      assert(!this.is_completed({ uuid: message.uuid }), "C3Caller: already completed")
 
-    const check_valid_sender = NearPromise.new(message.to)
-      .functionCall("is_vaild_sender", JSON.stringify({ tx_sender }), ZERO, THIRTY_TGAS)
-    const check_dapp_id = NearPromise.new(message.to)
-      .functionCall("dapp_id", NO_ARGS, ZERO, THIRTY_TGAS)
-    const next = NearPromise.new(near.currentAccountId())
-      .functionCall("execute_validated", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
+      const check_valid_sender = NearPromise.new(message.to)
+        .functionCall("is_vaild_sender", JSON.stringify({ tx_sender }), ZERO, THIRTY_TGAS)
+      const check_dapp_id = NearPromise.new(message.to)
+        .functionCall("dapp_id", NO_ARGS, ZERO, THIRTY_TGAS)
+      const next = NearPromise.new(near.currentAccountId())
+        .functionCall("execute_validated", JSON.stringify({ dapp_id, message }), ZERO, THIRTY_TGAS)
 
-    return check_dapp_id.and(check_valid_sender).then(next).asReturn()
+      return check_dapp_id.and(check_valid_sender).then(next).asReturn()
+    } catch (err) {
+      this.execution_error(dapp_id, message, err.message)
+    }
   }
 
   ///////////////////////////////////////////////////////////////
@@ -170,37 +174,41 @@ class C3Caller extends C3UUIDKeeper {
   execute_validated(
     { dapp_id, message }:
     { dapp_id: string, message: C3NEARMessage }
-  ) {
-    const check_valid_sender = JSON.parse(near.promiseResult(0 as PromiseIndex))
-    const check_dapp_id = JSON.parse(near.promiseResult(1 as PromiseIndex))
+  ): NearPromise {
+    try {
+      const check_valid_sender = JSON.parse(near.promiseResult(0 as PromiseIndex))
+      const check_dapp_id = JSON.parse(near.promiseResult(1 as PromiseIndex))
 
-    assert(check_valid_sender == "true", "C3Caller: txSender invalid")
-    assert(check_dapp_id == dapp_id, "C3Caller: dappID dismatch")
+      assert(check_valid_sender == "true", "C3Caller: txSender invalid")
+      assert(check_dapp_id == dapp_id, "C3Caller: dappID dismatch")
 
-    const context: C3Context = {
-      swap_id: message.uuid,
-      from_chain_id: message.from_chain_id,
-      source_tx: message.source_tx
-    }
-    this.exec_context.set(message.uuid, context)
+      const context: C3Context = {
+        swap_id: message.uuid,
+        from_chain_id: message.from_chain_id,
+        source_tx: message.source_tx
+      }
+      this.exec_context.set(message.uuid, context)
 
-    const selector = message.data.slice(2, 10) // abc12340
-    const { function_name, parameter_types } = this.selector_data.get(selector)
+      const selector = message.data.slice(2, 10) // abc12340
+      const { function_name, parameter_types } = this.selector_data.get(selector)
 
-    const decoded_calldata = decodeParameters(parameter_types, message.data)
+      const decoded_calldata = decodeParameters(parameter_types, message.data)
   
-    const arg_array = []
-    for(let i = 0; i < decoded_calldata.__length__; i++) {
-      arg_array.push(decoded_calldata[i])
+      const arg_array = []
+      for(let i = 0; i < decoded_calldata.__length__; i++) {
+        arg_array.push(decoded_calldata[i])
+      }
+
+      // arbitrary function call on NEAR (must be registered in this contract)
+      const exec_call = NearPromise.new(message.to)
+        .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, MAX_TGAS)
+      const result_callback = NearPromise.new(near.currentAccountId())
+        .functionCall("execute_callback", JSON.stringify({ dapp_id, message }), ZERO, MAX_TGAS)
+
+      return exec_call.then(result_callback).asReturn()
+    } catch (err) {
+      this.execution_error(dapp_id, message, err.message)
     }
-
-    // arbitrary function call on NEAR (must be registered in this contract)
-    const exec_call = NearPromise.new(message.to)
-      .functionCall(function_name, JSON.stringify([...arg_array]), ZERO, MAX_TGAS)
-    const result_callback = NearPromise.new(near.currentAccountId())
-      .functionCall("execute_callback", JSON.stringify({ dapp_id, message }), ZERO, MAX_TGAS)
-
-    return exec_call.then(result_callback).asReturn()
   }
 
   ///////////////////////////////////////////////////////////////
@@ -210,34 +218,50 @@ class C3Caller extends C3UUIDKeeper {
   execute_callback(
     { dapp_id, message }:
     { dapp_id: string, message: C3NEARMessage }
-  ) {
-    /// @todo do we remove this?
-    this.exec_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
-    const { success, result }: { success: boolean, result: string } = promiseResult()
-    const resultParsed = JSON.parse(result)
+  ): C3Result {
+    try {
+      /// @todo do we remove this?
+      this.exec_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
+      const { success, result }: { success: boolean, result: string } = promiseResult()
+      const resultParsed = JSON.parse(result)
 
-    if (success && resultParsed == true) {
-      this.register_uuid({ uuid: message.uuid })
-    } else {
-      const fallback_call_log: C3CallerEventLogData = {
-        standard: "c3caller",
-        version: "1.0.0",
-        event: "fallback_call",
-        data: [
-          {
-            dappID: dapp_id.toString(),
-            uuid: message.uuid,
-            to: message.fallback_to,
-            data: message.data,
-            reasons: result
-          }
-        ]
+      if (success && resultParsed == true) {
+        this.register_uuid({ uuid: message.uuid })
+        return { success: true, message: `C3 execution successful.`, uuid: message.uuid }
+      } else {
+        throw new Error(result)
       }
-
-      const fallback_call_log_json = JSON.stringify({ EVENT_JSON: fallback_call_log })
-      near.log(fallback_call_log_json)
+    } catch (err) {
+      return this.execution_error(dapp_id, message, err.message)
     }
   }
+
+  execution_error(dapp_id: string, message: C3NEARMessage, error: string): C3Result {
+    const fallback_call_log: C3CallerEventLogData = {
+      standard: "c3caller",
+      version: "1.0.0",
+      event: "fallback_call",
+      data: [
+        {
+          dappID: dapp_id.toString(),
+          uuid: message.uuid,
+          to: message.fallback_to,
+          data: message.data,
+          reasons: error
+        }
+      ]
+    }
+
+    const fallback_call_log_json = JSON.stringify({ EVENT_JSON: fallback_call_log })
+    near.log(fallback_call_log_json)
+
+    return {
+      success: false,
+      message: `C3 execution failed, falling back to chain ${message.from_chain_id}.`,
+      uuid: message.uuid
+    }
+  }
+
 
 
   ///////////////////////////////////////////////////////////////

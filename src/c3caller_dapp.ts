@@ -20,7 +20,7 @@ export class C3CallerDApp {
 
   only_c3caller() {
     const caller: AccountId = near.predecessorAccountId()
-    assert(caller === this.c3caller, "C3Caller: Only C3Caller")
+    assert(caller === this.c3caller, "C3CallerDApp: Only C3Caller")
   }
 
   c3call(

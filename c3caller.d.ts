@@ -213,7 +213,7 @@ interface C3Executable {
 interface C3Result {
   success: boolean,
   message: string,
-  uuid: string | string[]
+  uuid?: string | string[]
 }
 
 

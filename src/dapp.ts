@@ -13,7 +13,7 @@ class DApp extends C3CallerDApp {
     this.c3caller = c3caller
     this.dapp_id = dapp_id
 
-    this._mint({ account: near.signerAccountId(), amount: "2000000000000000000" }) // 2 ether
+    this._mint({ account: near.signerAccountId(), amount: "10000000000000000000" }) // 2 ether
   }
 
   // internal
@@ -70,7 +70,8 @@ class DApp extends C3CallerDApp {
 
     let c3_promise: NearPromise
 
-    this._burn({ account: near.signerAccountId(), amount })
+    const target_chain_count = BigInt(to_chain_ids.length)
+    this._burn({ account: near.signerAccountId(), amount: (BigInt(amount) * target_chain_count).toString() })
 
     if (to_chain_ids.length === 1) {
       c3_promise = this.c3call({ to: to[0], to_chain_id: to_chain_ids[0], data, extra })

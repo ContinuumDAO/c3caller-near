@@ -208,8 +208,10 @@ class C3Caller extends C3UUIDKeeper {
   
       const arg_array = []
       for(let i = 0; i < decoded_calldata.__length__; i++) {
-        arg_array.push(decoded_calldata[i])
+        arg_array.push(typeof decoded_calldata[i] === "bigint" ? decoded_calldata.toString() : decoded_calldata[i])
       }
+
+      throw new Error("args: " + arg_array)
 
       // arbitrary function call on NEAR (must be registered in this contract)
       const exec_call = NearPromise.new(message.to)

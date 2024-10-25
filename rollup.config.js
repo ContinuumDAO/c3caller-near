@@ -15,7 +15,8 @@ export default {
   },
   plugins: [
     inject({
-      TextEncoder: ["text-encoder", "TextEncoder"]
+      TextEncoder: ["text-encoder", "TextEncoder"],
+      TextDecoder: ["text-encoder", "TextDecoder"]
     }),
     nodeResolve({
       extensions: [".js", ".ts"]

@@ -97,8 +97,7 @@ export class C3CallerDApp {
     return this.c3caller
   }
 
-  @view({})
-  get_dapp_id(): string {
+  _get_dapp_id(): string {
     return this.dapp_id
   }
 
@@ -107,6 +106,6 @@ export class C3CallerDApp {
     const c3context_promise = NearPromise.new(this.c3caller)
       .functionCall("get_context", NO_ARGS, ZERO, TGAS_DEFAULT)
 
-    return c3context_promise
+    return c3context_promise.asReturn()
   }
 }

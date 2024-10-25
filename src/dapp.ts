@@ -57,9 +57,9 @@ class DApp extends C3CallerDApp {
     { account, amount, to, to_chain_ids }:
     { account: string, amount: string, to: string[], to_chain_ids: string[] }
   ): NearPromise {
-    // ABI function fragment for `function mint(address account, uint256 amount)`
+    // ABI function fragment for `function mint(string memory account, uint256 amount)`
     const abi_mint_fragment = { name: "mint", type: "function", inputs: [
-      { type: "address", name: "account" },
+      { type: "string", name: "account" },
       { type: "uint256", name: "amount" }
     ]}
 
@@ -117,8 +117,13 @@ class DApp extends C3CallerDApp {
   }
 
   @view({})
-  is_vaild_sender(): boolean {
+  is_vaild_sender({ tx_sender: string }): boolean {
     return true // validate sender
+  }
+
+  @view({})
+  get_dapp_id(): string {
+    return super._get_dapp_id()
   }
 }
 

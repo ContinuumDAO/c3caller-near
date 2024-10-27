@@ -13,13 +13,13 @@ class DApp extends C3CallerDApp {
     this.c3caller = c3caller
     this.dapp_id = dapp_id
 
-    this._mint({ account: near.signerAccountId(), amount: "10000000000000000000" }) // 2 ether
+    this._mint({ account: near.signerAccountId(), amount: "10000000000000000000" }) // 10 ether
   }
 
   // internal
   _mint({ account, amount }: { account: AccountId, amount: string }) {
     const amount_n = BigInt(amount)
-    const prev_bal = this.get_balance({ account })
+    const prev_bal = BigInt(this.get_balance({ account }))
     const new_bal = prev_bal + amount_n
     this.balance.set(account, new_bal)
   }
@@ -27,16 +27,23 @@ class DApp extends C3CallerDApp {
   // internal
   _burn({ account, amount }: { account: AccountId, amount: string }) {
     const amount_n = BigInt(amount)
-    const prev_bal = this.get_balance({ account })
+    const prev_bal = BigInt(this.get_balance({ account }))
     assert(amount_n <= prev_bal, "C3CallerDApp: Insufficient balance")
     const new_bal = prev_bal - amount_n
     this.balance.set(account, new_bal)
   }
 
   @call({})
-  mint({ account, amount }: { account: AccountId, amount: string }) {
-    super.only_c3caller()
-    this._mint({ account, amount })
+  mint({ c3args }: { c3args: any[] }): boolean | string {
+    const account = c3args[0]
+    const amount = c3args[1]
+    try {
+      super.only_c3caller()
+      this._mint({ account, amount })
+      return true
+    } catch (err) {
+      return `Failed mint: ${ err.message }`
+    }
   }
 
   @call({})
@@ -46,10 +53,10 @@ class DApp extends C3CallerDApp {
   }
 
   @view({})
-  get_balance({ account }: { account: AccountId }): bigint {
+  get_balance({ account }: { account: AccountId }): string {
     const bal = this.balance.get(account)
-    if (bal == null) return BigInt("0")
-    else return bal
+    if (bal === null) return "0"
+    return bal.toString()
   }
 
   @call({})
@@ -78,6 +85,8 @@ class DApp extends C3CallerDApp {
     } else {
       c3_promise = this.c3broadcast({ to, to_chain_ids, data })
     }
+
+    /// @todo reimburse the burned tokens if the c3call/c3broadcast fails
 
     return c3_promise.asReturn()
   }
@@ -117,7 +126,7 @@ class DApp extends C3CallerDApp {
   }
 
   @view({})
-  is_vaild_sender({ tx_sender: string }): boolean {
+  is_vaild_sender({ tx_sender }: { tx_sender: string }): boolean {
     return true // validate sender
   }
 

@@ -1,10 +1,5 @@
-import { AccountId, LookupMap, near, view, NearPromise, PromiseIndex, assert } from "near-sdk-js"
+import { AccountId, near, view, NearPromise, PromiseIndex, assert } from "near-sdk-js"
 import { C3Result } from "../c3caller"
-
-interface C3Executable {
-  function_name: string,
-  parameter_types: string[]
-}
 
 const ZERO = BigInt(0)
 const TGAS_DEFAULT = BigInt("30000000000000")
@@ -14,9 +9,6 @@ const NO_ARGS = JSON.stringify({})
 export class C3CallerDApp {
   c3caller: AccountId = ""
   dapp_id: string = ""
-
-  // sol_signature: LookupMap<string> = new LookupMap<string>("sol_signature")
-  // selector_data: LookupMap<C3Executable> = new LookupMap<C3Executable>("selector_data")
 
   only_c3caller() {
     const caller: AccountId = near.predecessorAccountId()

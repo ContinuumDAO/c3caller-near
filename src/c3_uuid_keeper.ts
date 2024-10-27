@@ -13,7 +13,6 @@ export class C3UUIDKeeper extends C3GovClient {
 
   @view({})
   only_operator() {
-    // assert(near.signerAccountId() == this.gov, "C3SwapIDKeeper: only governance")
     super.only_operator()
   }
 
@@ -22,7 +21,7 @@ export class C3UUIDKeeper extends C3GovClient {
     this.current_nonce = this.current_nonce + 1
   }
 
-  check_completion = (uuid: string) => {
+  check_completion(uuid: string) {
     assert(!this.completed_swapin.get(uuid), "C3SwapIDKeeper: uuid is completed")
   }
 
@@ -72,20 +71,18 @@ export class C3UUIDKeeper extends C3GovClient {
     this.completed_swapin.set(uuid, false)
   }
 
-  @call({})
   register_uuid({ uuid }: { uuid: string }) {
     this.only_operator()
     this.check_completion(uuid)
     this.completed_swapin.set(uuid, true)
   }
 
-  // temp: omitting the call decorator
-  @call({}) // only used for outgoing c3calls
   gen_uuid(
     { dapp_id, to, to_chain_id, data }:
     { dapp_id: string, to: string, to_chain_id: string, data: string }
   ): string {
-    this.only_operator()
+    /// @todo remove - this is called by c3caller only
+    // this.only_operator()
     this.auto_increase_swapout_nonce()
     const uuid = this.calc_uuid({
       sender: near.signerAccountId(),

@@ -49,76 +49,76 @@ test.afterEach.always(async (t) => {
 })
 
 
-// test("gov address initializes", async (t) => {
-//   const { c3caller } = t.context.accounts
-//   const gov = await c3caller.view("get_gov", {})
-//   t.is(gov, c3caller.accountId)
-// })
+test("gov address initializes", async (t) => {
+  const { c3caller } = t.context.accounts
+  const gov = await c3caller.view("get_gov", {})
+  t.is(gov, c3caller.accountId)
+})
 
-// test("initializes balance", async (t) => {
-//   const { dapp } = t.context.accounts
-//   const balance = await dapp.view("get_balance", {account: dapp.accountId})
-//   t.is(balance, "10000000000000000000")
-// })
+test("initializes balance", async (t) => {
+  const { dapp } = t.context.accounts
+  const balance = await dapp.view("get_balance", {account: dapp.accountId})
+  t.is(balance, "10000000000000000000")
+})
 
-// test("registers new sig as executable", async (t) => {
-//   const { root, c3caller } = t.context.accounts
-//   const signature = "mint(string,uint256)"
-//   const { selector, executable } = await root.call(c3caller, "register_c3executable", { signature  }, { gas: TGAS_MAX })
-//   const executable_json = JSON.stringify(executable)
-//   const executable_expected_json = JSON.stringify({
-//     function_name: "mint",
-//     parameter_types: [
-//       "string",
-//       "uint256"
-//     ]
-//   })
+test("registers new sig as executable", async (t) => {
+  const { root, c3caller } = t.context.accounts
+  const signature = "mint(string,uint256)"
+  const { selector, executable } = await root.call(c3caller, "register_c3executable", { signature  }, { gas: TGAS_MAX })
+  const executable_json = JSON.stringify(executable)
+  const executable_expected_json = JSON.stringify({
+    function_name: "mint",
+    parameter_types: [
+      "string",
+      "uint256"
+    ]
+  })
 
-//   t.is(selector, "0x056b01ce") // mint(string,uint256)
-//   t.is(executable_json, executable_expected_json)
-// })
+  t.is(selector, "0x056b01ce") // mint(string,uint256)
+  t.is(executable_json, executable_expected_json)
+})
 
-// test("doesn't register existing sig as executable", async (t) => {
-//   const { root, c3caller } = t.context.accounts
-//   const signature = "mint(string,uint256)"
-//   const { selector } = await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // it is now registered
-//   await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // the above call should take less gas.
+test("doesn't register existing sig as executable", async (t) => {
+  const { root, c3caller } = t.context.accounts
+  const signature = "mint(string,uint256)"
+  const { selector } = await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // it is now registered
+  await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // the above call should take less gas.
 
-//   t.is(selector, "0x056b01ce")
-// })
+  t.is(selector, "0x056b01ce")
+})
 
-// test("test c3call", async (t) => {
-//   const { dapp } = t.context.accounts
-//   const transfer_out_data = {
-//     account: "0x1111111111111111111111111111111111111111",
-//     amount: "1000000000000000000",
-//     to: ["0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
-//     to_chain_ids: ["1"]
-//   }
+test("test c3call", async (t) => {
+  const { dapp } = t.context.accounts
+  const transfer_out_data = {
+    account: "0x1111111111111111111111111111111111111111",
+    amount: "1000000000000000000",
+    to: ["0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+    to_chain_ids: ["1"]
+  }
 
-//   await dapp.call(dapp, "transfer_out_evm", transfer_out_data, { gas: TGAS_MAX })
-//   t.pass()
-// })
+  await dapp.call(dapp, "transfer_out_evm", transfer_out_data, { gas: TGAS_MAX })
+  t.pass()
+})
 
-// test("test_c3broadcast", async (t) => {
-//   const { dapp } = t.context.accounts
-//   const transfer_out_data = {
-//     account: "0x1111111111111111111111111111111111111111",
-//     amount: "1000000000000000000",
-//     to: [
-//       "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-//       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-//       "0xcccccccccccccccccccccccccccccccccccccccc"
-//     ],
-//     to_chain_ids: ["1", "56", "250"]
-//   }
+test("test_c3broadcast", async (t) => {
+  const { dapp } = t.context.accounts
+  const transfer_out_data = {
+    account: "0x1111111111111111111111111111111111111111",
+    amount: "1000000000000000000",
+    to: [
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "0xcccccccccccccccccccccccccccccccccccccccc"
+    ],
+    to_chain_ids: ["1", "56", "250"]
+  }
 
-//   await dapp.call(dapp, "transfer_out_evm", transfer_out_data, { gas: TGAS_MAX })
-//   t.pass()
-// })
+  await dapp.call(dapp, "transfer_out_evm", transfer_out_data, { gas: TGAS_MAX })
+  t.pass()
+})
 
 test("test execute", async (t) => {
-  const { c3caller } = t.context.accounts
+  const { dapp, c3caller } = t.context.accounts
 
   const incoming_c3_message = {
     // created on src chain
@@ -162,7 +162,11 @@ test("test execute", async (t) => {
   // selector: 0x056b01ce
   // executable: { function_name: "mint", parameter_types: [ "string", "uint256" ] }
 
+  const balance_before = BigInt(await dapp.view("get_balance", {account: dapp.accountId}))
+
   await c3caller.call(c3caller, "execute", execution_data, { gas: TGAS_MAX })
 
-  t.pass()
+  const balance_after = BigInt(await dapp.view("get_balance", {account: dapp.accountId}))
+
+  t.is(balance_after, balance_before + 1000000000000000000n)
 })

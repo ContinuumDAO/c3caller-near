@@ -2,3 +2,4 @@ build/
 node_modules/
 extras/
 instructions.md
+exec_data.txt

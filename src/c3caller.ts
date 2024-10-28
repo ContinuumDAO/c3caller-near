@@ -11,7 +11,7 @@ const NO_ARGS = JSON.stringify({})
 
 @NearBindgen({ requireInit: true })
 class C3Caller extends C3UUIDKeeper {
-  context: C3Context = { swap_id: "", from_chain_id: "", source_tx: "" }
+  context: C3Context = {swap_id: "", from_chain_id: "", source_tx: ""}
   paused: boolean = false
 
   completed_swapin: LookupMap<boolean> = new LookupMap<boolean>("completed_swapin")
@@ -23,18 +23,18 @@ class C3Caller extends C3UUIDKeeper {
     return BigInt(amount + "000000000000")
   }
 
-  @initialize({ privateFunction: true })
+  @initialize({privateFunction: true})
   init() {
-    this.init_gov({ gov: near.signerAccountId() })
+    this.init_gov({gov: near.signerAccountId()})
   }
 
-  @call({ privateFunction: true })
+  @call({privateFunction: true})
   pause() {
     this.only_operator()
     this.paused = true
   }
 
-  @call({ privateFunction: true })
+  @call({privateFunction: true})
   unpause() {
     this.only_operator()
     this.paused = false
@@ -52,7 +52,7 @@ class C3Caller extends C3UUIDKeeper {
       assert(to_chain_id.length > 0, "C3Caller: empty toChainID")
       assert(data.length > 0, "C3Caller: empty calldata")
 
-      const uuid = this.gen_uuid({ dapp_id, to, to_chain_id, data })
+      const uuid = this.gen_uuid({dapp_id, to, to_chain_id, data})
 
       const c3call_log: C3CallerEventLogData = {
         standard: "c3caller",
@@ -71,7 +71,7 @@ class C3Caller extends C3UUIDKeeper {
         ]
       }
 
-      const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
+      const c3call_log_json = JSON.stringify({EVENT_JSON: c3call_log})
       near.log(c3call_log_json)
 
       return {
@@ -82,7 +82,7 @@ class C3Caller extends C3UUIDKeeper {
     } catch (err) {
       return {
         success: false,
-        message: `C3Call unsuccessful: ${ err.message }`
+        message: `C3Call unsuccessful: ${err.message}`
       }
     }
   }
@@ -103,7 +103,7 @@ class C3Caller extends C3UUIDKeeper {
       const c3call_log_data = []
 
       for(let i = 0; i < to.length; i++) {
-        const uuid_args = { dapp_id, to: to[i], to_chain_id: to_chain_ids[i], data }
+        const uuid_args = {dapp_id, to: to[i], to_chain_id: to_chain_ids[i], data}
         const uuid = this.gen_uuid(uuid_args)
 
         c3call_log_data.push({
@@ -124,7 +124,7 @@ class C3Caller extends C3UUIDKeeper {
         data: c3call_log_data
       }
 
-      const c3call_log_json = JSON.stringify({ EVENT_JSON: c3call_log })
+      const c3call_log_json = JSON.stringify({EVENT_JSON: c3call_log})
       near.log(c3call_log_json)
 
       return {
@@ -135,7 +135,7 @@ class C3Caller extends C3UUIDKeeper {
     } catch (err) {
       return {
         success: false,
-        message: `C3Broadcast unsuccessful: ${ err.message }`
+        message: `C3Broadcast unsuccessful: ${err.message}`
       }
     }
   }
@@ -153,16 +153,16 @@ class C3Caller extends C3UUIDKeeper {
       this.only_operator()
       assert(!this.paused, "C3Caller: paused")
       assert(message.data.length > 0, "C3Caller: empty calldata")
-      assert(!this.is_completed({ uuid: message.uuid }), "C3Caller: already completed")
+      assert(!this.is_completed({uuid: message.uuid}), "C3Caller: already completed")
 
       const check_valid_sender = NearPromise.new(message.to)
-        .functionCall("is_vaild_sender", JSON.stringify({ tx_sender }), ZERO, this.TGAS("30"))
+        .functionCall("is_vaild_sender", JSON.stringify({tx_sender}), ZERO, this.TGAS("30"))
         // -> boolean
       const check_dapp_id = NearPromise.new(message.to)
         .functionCall("get_dapp_id", NO_ARGS, ZERO, this.TGAS("30"))
         // -> string
       const next = NearPromise.new(near.currentAccountId())
-        .functionCall("execute_validated", JSON.stringify({ dapp_id, message }), ZERO, this.TGAS("150"))
+        .functionCall("execute_validated", JSON.stringify({dapp_id, message}), ZERO, this.TGAS("150"))
 
       return check_dapp_id.and(check_valid_sender).then(next).asReturn()
     } catch (err) {
@@ -213,10 +213,10 @@ class C3Caller extends C3UUIDKeeper {
 
       // arbitrary function call on NEAR (must be registered in this contract)
       const exec_call = NearPromise.new(target)
-        .functionCall(function_name, JSON.stringify({ c3args: arg_array }), ZERO, this.TGAS("50"))
+        .functionCall(function_name, JSON.stringify({c3args: arg_array}), ZERO, this.TGAS("50"))
         // -> boolean
       const result_callback = NearPromise.new(near.currentAccountId())
-        .functionCall("execute_callback", JSON.stringify({ dapp_id, message }), ZERO, this.TGAS("50"))
+        .functionCall("execute_callback", JSON.stringify({dapp_id, message}), ZERO, this.TGAS("50"))
 
       return exec_call.then(result_callback).asReturn()
     } catch (err) {
@@ -234,12 +234,12 @@ class C3Caller extends C3UUIDKeeper {
   ): C3Result {
     try {
       /// @todo do we remove this?
-      this.exec_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
+      this.exec_context.set(message.uuid, {swap_id: "", from_chain_id: "", source_tx: ""})
       const { success, result } = this.execute_result()
 
       if (success && result) {
-        this.register_uuid({ uuid: message.uuid })
-        near.log({ success: true, message: `C3 execution successful.`, uuid: message.uuid })
+        this.register_uuid({uuid: message.uuid})
+        near.log({success: true, message: `C3 execution successful.`, uuid: message.uuid})
       } else {
         throw new Error(JSON.stringify(result))
       }
@@ -265,7 +265,7 @@ class C3Caller extends C3UUIDKeeper {
       ]
     }
 
-    const fallback_call_log_json = JSON.stringify({ EVENT_JSON: fallback_call_log })
+    const fallback_call_log_json = JSON.stringify({EVENT_JSON: fallback_call_log})
     near.log(fallback_call_log_json)
 
     return {
@@ -289,20 +289,20 @@ class C3Caller extends C3UUIDKeeper {
       this.only_operator()
       assert(!this.paused, "C3Caller: paused")
       assert(message.data.length > 0, "C3Caller: empty calldata")
-      assert(!this.is_completed({ uuid: message.uuid }), "C3Caller: already completed")
+      assert(!this.is_completed({uuid: message.uuid}), "C3Caller: already completed")
 
       const check_valid_sender = NearPromise.new(message.to)
-        .functionCall("is_vaild_sender", JSON.stringify({ tx_sender }), ZERO, this.TGAS("30"))
+        .functionCall("is_vaild_sender", JSON.stringify({tx_sender}), ZERO, this.TGAS("30"))
         // return boolean
       const check_dapp_id = NearPromise.new(message.to)
         .functionCall("get_dapp_id", NO_ARGS, ZERO, this.TGAS("30"))
         // return string
       const next = NearPromise.new(near.currentAccountId())
-        .functionCall("c3_fallback_validated", JSON.stringify({ dapp_id, message }), ZERO, this.TGAS("150"))
+        .functionCall("c3_fallback_validated", JSON.stringify({dapp_id, message}), ZERO, this.TGAS("150"))
 
       return check_valid_sender.and(check_dapp_id).then(next).asReturn()
     } catch (err) {
-      this.c3_fallback_error(dapp_id, message, `(c3_fallback) ${ err.message }`)
+      this.c3_fallback_error(dapp_id, message, `(c3_fallback) ${err.message}`)
     }
   }
 
@@ -352,10 +352,10 @@ class C3Caller extends C3UUIDKeeper {
       /// @bug here we call fallback_to with the data originally intended to be executed on dest chain
       ///      we actually want to call fallback_to:c3Fallback(message, function_name, arg_array)
       const fallback_call = NearPromise.new(target)
-        .functionCall(function_name, JSON.stringify({ c3args: arg_array }), ZERO, this.TGAS("30"))
+        .functionCall(function_name, JSON.stringify({c3args: arg_array}), ZERO, this.TGAS("30"))
         // -> boolean
       const result_callback = NearPromise.new(near.currentAccountId())
-        .functionCall("c3_fallback_callback", JSON.stringify({ dapp_id, message }), ZERO, this.TGAS("50"))
+        .functionCall("c3_fallback_callback", JSON.stringify({dapp_id, message}), ZERO, this.TGAS("50"))
     
       return fallback_call.then(result_callback).asReturn()
     } catch (err) {
@@ -370,10 +370,10 @@ class C3Caller extends C3UUIDKeeper {
   c3_fallback_callback({ dapp_id, message }: { dapp_id: string, message: C3NEARMessage }) {
     try {
       /// @todo do we remove this?
-      this.fallback_context.set(message.uuid, { swap_id: "", from_chain_id: "", source_tx: "" })
+      this.fallback_context.set(message.uuid, {swap_id: "", from_chain_id: "", source_tx: ""})
       const { result }: { result: string } = JSON.parse(near.promiseResult(0 as PromiseIndex))
 
-      this.register_uuid({ uuid: message.uuid })
+      this.register_uuid({uuid: message.uuid})
 
       const exec_fallback_log: C3CallerEventLogData = {
         standard: "c3caller",
@@ -392,7 +392,7 @@ class C3Caller extends C3UUIDKeeper {
         ]
       }
 
-      const exec_fallback_log_json = JSON.stringify({ EVENT_JSON: exec_fallback_log })
+      const exec_fallback_log_json = JSON.stringify({EVENT_JSON: exec_fallback_log})
       near.log(exec_fallback_log_json)
     } catch (err) {
       return this.c3_fallback_error(dapp_id, message, `(c3_fallback_callback) ${err.message}`)
@@ -413,12 +413,12 @@ class C3Caller extends C3UUIDKeeper {
   register_c3executable({ signature }: { signature: string }): { selector: string, executable: C3Executable } {
     const selector = this.calculate_selector(signature)
     const existing_selector_data = this.selector_data.get(selector)
-    if (existing_selector_data !== null) return { selector, executable: existing_selector_data }
+    if (existing_selector_data !== null) return {selector, executable: existing_selector_data}
     const function_name = signature.slice(0, signature.indexOf("("))
     const parameter_types = (signature.match(/\((.*?)\)/)[1]).split(",")
-    const executable = { function_name, parameter_types }
+    const executable = {function_name, parameter_types}
     this.selector_data.set(selector, executable)
-    return { selector, executable }
+    return {selector, executable}
   }
 
   @view({})
@@ -454,12 +454,12 @@ class C3Caller extends C3UUIDKeeper {
   }
 
   register_uuid({ uuid }: { uuid: string }) {
-    super.register_uuid({ uuid })
+    super.register_uuid({uuid})
   }
 
   @call({})
   add_operator({ op }: { op: AccountId }) {
-    super.add_operator({ op })
+    super.add_operator({op})
   }
 
   execute_result(): { success: boolean, result: any } {
@@ -474,6 +474,6 @@ class C3Caller extends C3UUIDKeeper {
       result = undefined
     }
 
-    return { success, result }
+    return {success, result}
   }
 }

@@ -64,7 +64,7 @@ test("initializes balance", async (t) => {
 test("registers new sig as executable", async (t) => {
   const { root, c3caller } = t.context.accounts
   const signature = "mint(string,uint256)"
-  const { selector, executable } = await root.call(c3caller, "register_c3executable", { signature  }, { gas: TGAS_MAX })
+  const { selector, executable } = await root.call(c3caller, "register_c3executable", {signature}, {gas: TGAS_MAX})
   const executable_json = JSON.stringify(executable)
   const executable_expected_json = JSON.stringify({
     function_name: "mint",
@@ -81,8 +81,8 @@ test("registers new sig as executable", async (t) => {
 test("doesn't register existing sig as executable", async (t) => {
   const { root, c3caller } = t.context.accounts
   const signature = "mint(string,uint256)"
-  const { selector } = await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // it is now registered
-  await root.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX }) // the above call should take less gas.
+  const { selector } = await root.call(c3caller, "register_c3executable", {signature}, {gas: TGAS_MAX}) // it is now registered
+  await root.call(c3caller, "register_c3executable", {signature}, {gas: TGAS_MAX}) // the above call should take less gas.
 
   t.is(selector, "0x056b01ce")
 })
@@ -96,7 +96,7 @@ test("test c3call", async (t) => {
     to_chain_ids: ["1"]
   }
 
-  await dapp.call(dapp, "transfer_out_evm", transfer_out_data, { gas: TGAS_MAX })
+  await dapp.call(dapp, "transfer_out_evm", transfer_out_data, {gas: TGAS_MAX})
   t.pass()
 })
 
@@ -113,7 +113,7 @@ test("test_c3broadcast", async (t) => {
     to_chain_ids: ["1", "56", "250"]
   }
 
-  await dapp.call(dapp, "transfer_out_evm", transfer_out_data, { gas: TGAS_MAX })
+  await dapp.call(dapp, "transfer_out_evm", transfer_out_data, {gas: TGAS_MAX})
   t.pass()
 })
 
@@ -158,13 +158,13 @@ test("test execute", async (t) => {
 
   const signature = "mint(string,uint256)"
 
-  const { selector, executable } = await c3caller.call(c3caller, "register_c3executable", { signature }, { gas: TGAS_MAX })
-  // selector: 0x056b01ce
-  // executable: { function_name: "mint", parameter_types: [ "string", "uint256" ] }
+  await c3caller.call(c3caller, "register_c3executable", {signature}, {gas: TGAS_MAX})
+  // -> selector: 0x056b01ce
+  // -> executable: { function_name: "mint", parameter_types: [ "string", "uint256" ] }
 
   const balance_before = BigInt(await dapp.view("get_balance", {account: dapp.accountId}))
 
-  await c3caller.call(c3caller, "execute", execution_data, { gas: TGAS_MAX })
+  await c3caller.call(c3caller, "execute", execution_data, {gas: TGAS_MAX})
 
   const balance_after = BigInt(await dapp.view("get_balance", {account: dapp.accountId}))
 

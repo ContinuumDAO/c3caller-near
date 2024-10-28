@@ -13,13 +13,13 @@ class DApp extends C3CallerDApp {
     this.c3caller = c3caller
     this.dapp_id = dapp_id
 
-    this._mint({ account: near.signerAccountId(), amount: "10000000000000000000" }) // 10 ether
+    this._mint({account: near.signerAccountId(), amount: "10000000000000000000"}) // 10 ether
   }
 
   // internal
   _mint({ account, amount }: { account: AccountId, amount: string }) {
     const amount_n = BigInt(amount)
-    const prev_bal = BigInt(this.get_balance({ account }))
+    const prev_bal = BigInt(this.get_balance({account}))
     const new_bal = prev_bal + amount_n
     this.balance.set(account, new_bal)
   }
@@ -27,7 +27,7 @@ class DApp extends C3CallerDApp {
   // internal
   _burn({ account, amount }: { account: AccountId, amount: string }) {
     const amount_n = BigInt(amount)
-    const prev_bal = BigInt(this.get_balance({ account }))
+    const prev_bal = BigInt(this.get_balance({account}))
     assert(amount_n <= prev_bal, "C3CallerDApp: Insufficient balance")
     const new_bal = prev_bal - amount_n
     this.balance.set(account, new_bal)
@@ -39,17 +39,17 @@ class DApp extends C3CallerDApp {
     const amount = c3args[1]
     try {
       super.only_c3caller()
-      this._mint({ account, amount })
+      this._mint({account, amount})
       return true
     } catch (err) {
-      return `Failed mint: ${ err.message }`
+      return `Failed mint: ${err.message}`
     }
   }
 
   @call({})
   burn({ account, amount }: { account: AccountId, amount: string }) {
     super.only_c3caller()
-    this._burn({ account, amount })
+    this._burn({account, amount})
   }
 
   @view({})
@@ -78,12 +78,12 @@ class DApp extends C3CallerDApp {
     let c3_promise: NearPromise
 
     const target_chain_count = BigInt(to_chain_ids.length)
-    this._burn({ account: near.signerAccountId(), amount: (BigInt(amount) * target_chain_count).toString() })
+    this._burn({account: near.signerAccountId(), amount: (BigInt(amount) * target_chain_count).toString()})
 
     if (to_chain_ids.length === 1) {
-      c3_promise = this.c3call({ to: to[0], to_chain_id: to_chain_ids[0], data, extra })
+      c3_promise = this.c3call({to: to[0], to_chain_id: to_chain_ids[0], data, extra})
     } else {
-      c3_promise = this.c3broadcast({ to, to_chain_ids, data })
+      c3_promise = this.c3broadcast({to, to_chain_ids, data})
     }
 
     /// @todo reimburse the burned tokens if the c3call/c3broadcast fails
@@ -135,4 +135,3 @@ class DApp extends C3CallerDApp {
     return super._get_dapp_id()
   }
 }
-

@@ -46,7 +46,7 @@ export class C3CallerDApp {
 
   c3broadcast(
     { to, to_chain_ids, data }:
-      { to: string[], to_chain_ids: string[], data: string }
+    { to: string[], to_chain_ids: string[], data: string }
   ): NearPromise {
     const c3caller = this.c3caller
     const dapp_id = this.dapp_id

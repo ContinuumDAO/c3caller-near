@@ -29,10 +29,10 @@ export class C3GovClient {
       standard: "c3caller",
       version: "1.0.0",
       event: "apply_gov",
-      data: [{ oldGov: current_gov, newGov: gov, timestamp: near.blockTimestamp().toString() }]
+      data: [{oldGov: current_gov, newGov: gov, timestamp: near.blockTimestamp().toString()}]
     }
 
-    const apply_gov_json = JSON.stringify({ EVENT_JSON: apply_gov_log })
+    const apply_gov_json = JSON.stringify({EVENT_JSON: apply_gov_log})
     near.log(apply_gov_json)
   }
 
@@ -45,7 +45,7 @@ export class C3GovClient {
       standard: "c3caller",
       version: "1.0.0",
       event: "change_gov",
-      data: [{ oldGov: this.gov, newGov: gov, timestamp: near.blockTimestamp().toString() }]
+      data: [{oldGov: this.gov, newGov: gov, timestamp: near.blockTimestamp().toString()}]
     }
 
     const change_gov_json = JSON.stringify(change_gov_log)
@@ -65,7 +65,7 @@ export class C3GovClient {
       standard: "c3caller",
       version: "1.0.0",
       event: "apply_gov",
-      data: [{ oldGov: old_gov, newGov: new_gov, timestamp: near.blockTimestamp().toString() }]
+      data: [{oldGov: old_gov, newGov: new_gov, timestamp: near.blockTimestamp().toString()}]
     }
 
     const apply_gov_json = JSON.stringify(apply_gov_log)

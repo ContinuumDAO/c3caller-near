@@ -37,7 +37,7 @@ export class C3UUIDKeeper extends C3GovClient {
       data: string
     }
   ): string {
-    const parameter_types = [ "string", "string", "string", "uint256", "address", "string", "uint256", "bytes" ]
+    const parameter_types = ["string", "string", "string", "uint256", "address", "string", "uint256", "bytes"]
     const parameter_values = [
       near.currentAccountId(),  // string
       sender,                   // string
@@ -92,7 +92,7 @@ export class C3UUIDKeeper extends C3GovClient {
       nonce: String(this.current_nonce),
       data
     })
-    assert(!this.is_uuid_exist({ uuid }), "uuid already exist")
+    assert(!this.is_uuid_exist({uuid}), "uuid already exist")
     this.uuid_2_nonce.set(uuid, this.current_nonce)
     return uuid
   }
